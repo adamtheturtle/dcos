@@ -1,1 +1,4 @@
 pytest
+dulwich
+PyYAML
+docker-py
