@@ -42,10 +42,12 @@ class DCOS_Docker:
         else:
             extra_genconf = ''
 
+        extra_genconf = extra_genconf.strip()
+
         make_containers = subprocess.Popen(
             [
                 "make",
-                # 'EXTRA_GENCONF_CONFIG="{extra_genconf}"'.format(extra_genconf=extra_genconf),
+                "EXTRA_GENCONF_CONFIG=\"" + extra_genconf + "\"",
                 "MASTERS={masters}".format(masters=masters),
                 "AGENTS={agents}".format(agents=agents),
                 "PUBLIC_AGENTS={public_agents}".format(public_agents=public_agents),
@@ -55,6 +57,7 @@ class DCOS_Docker:
             cwd=str(self._path),
         )
 
+        # import pdb; pdb.set_trace()
         result = make_containers.wait()
 
         if result != 0:
@@ -74,7 +77,14 @@ class DCOS_Docker:
         postflight_command.wait()
 
     def destroy(self):
-        pass
+        clean_command = subprocess.Popen(
+            ['make', 'clean'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=str(self._path),
+        )
+
+        clean_command.wait()
 
     @property
     def masters(self):
@@ -85,14 +95,31 @@ class DCOS_Docker:
             container_name = 'dcos-docker-master{number}'.format(
                 number=master_number)
             details = client.inspect_container(container=container_name)
-            ip_address = details['NetworkSettings']['IPAddress']
+            ip_address = details['networksettings']['ipaddress']
             node = Node(ip_address=ip_address)
             nodes.add(node)
 
         return nodes
 
+    @property
+    def agents(self):
+        client = Client()
+        nodes = set()
+
+        for agent_number in range(1, self._agents + 1):
+            container_name = 'dcos-docker-agent{number}'.format(
+                number=agent_number)
+            details = client.inspect_container(container=container_name)
+            ip_address = details['networksettings']['ipaddress']
+            node = Node(ip_address=ip_address)
+            nodes.add(node)
+
+        return nodes
 
 class Node:
+    """
+    XXX
+    """
 
     def __init__(self, ip_address):
         self.ip_address = ip_address
@@ -134,7 +161,7 @@ class Cluster(ContextDecorator):
 class TestExample:
 
     def test_foo(self):
-        config = {}
+        config = {'oauth_enabled': 'true'}
         with Cluster(extra_config=config) as cluster:
             import pdb; pdb.set_trace()
             pass
