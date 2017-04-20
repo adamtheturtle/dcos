@@ -33,23 +33,26 @@ class DCOS_Docker:
         if not self._path.exists():
             porcelain.clone(dc_os_docker, self._path)
 
-        extra_genconf = yaml.dump(
-            data=extra_config,
-            # This flow style allows us to append the config to the existing config
-            default_flow_style=False,
-        )
+        if extra_config:
+            extra_genconf = yaml.dump(
+                data=extra_config,
+                # This flow style allows us to append the config to the existing config
+                default_flow_style=False,
+            )
+        else:
+            extra_genconf = ''
 
         make_containers = subprocess.Popen(
             [
                 "make",
-                "-C", str(self._path),
-                "EXTRA_GENCONF_CONFIG", extra_genconf,
-                "MASTERS", str(masters),
-                "AGENTS", str(agents),
-                "PUBLIC_AGENTS", str(public_agents),
+                # 'EXTRA_GENCONF_CONFIG="{extra_genconf}"'.format(extra_genconf=extra_genconf),
+                "MASTERS={masters}".format(masters=masters),
+                "AGENTS={agents}".format(agents=agents),
+                "PUBLIC_AGENTS={public_agents}".format(public_agents=public_agents),
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=str(self._path),
         )
 
         result = make_containers.wait()
@@ -57,22 +60,20 @@ class DCOS_Docker:
         if result != 0:
             stdout, stderr = make_containers.communicate()
             import pdb; pdb.set_trace()
+            raise Exception(stderr)
             pass
 
     def postflight(self):
         postflight_command = subprocess.Popen(
-            [
-                "make",
-                "-C", str(self._path),
-                "postflight",
-            ],
+            ['make', 'postflight'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=str(self._path),
         )
 
         postflight_command.wait()
 
-    def destroy_nodes(self):
+    def destroy(self):
         pass
 
     @property
@@ -81,7 +82,8 @@ class DCOS_Docker:
         nodes = set()
 
         for master_number in range(1, self._num_masters + 1):
-            container_name = 'dcos-docker-master' + master_number
+            container_name = 'dcos-docker-master{number}'.format(
+                number=master_number)
             details = client.inspect_container(container=container_name)
             ip_address = details['NetworkSettings']['IPAddress']
             node = Node(ip_address=ip_address)
@@ -126,7 +128,7 @@ class Cluster(ContextDecorator):
         return self._backend.public_agents
 
     def __exit__(self, *exc):
-        self._backend.destroy_nodes()
+        self._backend.destroy()
 
 
 class TestExample:
