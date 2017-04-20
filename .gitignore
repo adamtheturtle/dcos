@@ -23,6 +23,11 @@ wheelhouse/
 test/build/*
 PASSED
 FAILED
-test/.vagrant/*
+*.vagrant
 
 *.DS_Store
+*dcos-provider*-aws
+*dcos-provider*-azure
+packages/dcos-metadata/dcos-metadata*.tar.xz
+ubuntu-xenial-16.04-cloudimg-console.log
+
