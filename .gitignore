@@ -24,3 +24,5 @@ test/build/*
 PASSED
 FAILED
 test/.vagrant/*
+
+*.DS_Store
