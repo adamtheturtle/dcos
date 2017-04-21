@@ -24,7 +24,7 @@ class Node:
     XXX
     """
 
-    def __init__(self, ip_address) -> None:
+    def __init__(self, ip_address: str) -> None:
         self.ip_address = ip_address
 
     def run_as_root(self):
@@ -49,16 +49,14 @@ class DCOS_Docker:
         if not self._path.exists():
             porcelain.clone(dc_os_docker, self._path)
 
-        if extra_config:
-            extra_genconf = yaml.dump(
-                data=extra_config,
-                # This flow style allows us to append the config to the existing config
-                default_flow_style=False,
-            )
-        else:
-            extra_genconf = ''
+        extra_genconf = yaml.dump(
+            data=extra_config,
+            default_flow_style=False,
+        )
 
-        extra_genconf = extra_genconf.strip()
+        if not extra_genconf:
+            # Adding {} to the end of the config confuses the parser
+            extra_genconf = ''
 
         make_containers = subprocess.Popen(
             [
@@ -150,7 +148,8 @@ class DCOS_Docker:
 
 class Cluster(ContextDecorator):
 
-    def __init__(self, extra_config: Dict, masters: int = 1, agents: int = 1, public_agents: int = 1):
+    def __init__(self, extra_config: Dict, masters: int = 1, agents: int = 1,
+                 public_agents: int = 1) -> None:
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
@@ -163,31 +162,27 @@ class Cluster(ContextDecorator):
         return self
 
     @property
-    def masters(self):
+    def masters(self) -> Set[Node]:
         return self._backend.masters
 
     @property
-    def agents(self):
+    def agents(self) -> Set[Node]:
         return self._backend.agents
 
     @property
-    def public_agents(self):
+    def public_agents(self) -> Set[Node]:
         return self._backend.public_agents
 
-    def __exit__(self, *exc):
+    def __exit__(self, *exc) -> None:
         self._backend.destroy()
 
 
 class TestExample:
 
-    def test_foo(self) -> None:
-        config = {'oauth_enabled': 'true'}
-        with Cluster(extra_config=config) as cluster:
+    def test_empty_config(self) -> None:
+        with Cluster(extra_config={}) as cluster:
             (master,) = cluster.masters
-            import pdb; pdb.set_trace()
-            pass
 
-    @pytest.mark.skip()
     def test_martin_example(self) -> None:
         config = {
             'cluster_docker_credentials': {
@@ -202,4 +197,3 @@ class TestExample:
 
         with Cluster(extra_config=config) as cluster:
             (master,) = cluster.masters
-            pass
