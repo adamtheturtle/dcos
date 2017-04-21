@@ -31,7 +31,7 @@ class Node:
         self._ip_address = ip_address
         self._ssh_key_path = ssh_key_path
 
-    def run(self, args: List[str]) -> subprocess.CompletedProcess:
+    def run_as_root(self, args: List[str]) -> subprocess.CompletedProcess:
         """
         Run a command on this ``Node``.
 
@@ -53,8 +53,15 @@ class Node:
             # The node may be an unknown host.
             "-o",
             "StrictHostKeyChecking=no",
+            # Use an SSH key which is authorized.
             "-i",
             str(self._ssh_key_path),
+            # Run commands as the root user.
+            "-l",
+            "root",
+            # Bypass password checking.
+            "-o",
+            "PreferredAuthentications=publickey",
             self._ip_address,
         ] + args
 
