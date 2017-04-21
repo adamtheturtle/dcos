@@ -24,7 +24,7 @@ class DCOS_Docker:
         """
         self._num_masters = masters
         self._num_agents = agents
-        self._public_agents = public_agents
+        self._num_public_agents = public_agents
 
         self._path = Path('dcos-docker')
 
@@ -57,14 +57,11 @@ class DCOS_Docker:
             cwd=str(self._path),
         )
 
-        # import pdb; pdb.set_trace()
         result = make_containers.wait()
 
         if result != 0:
             stdout, stderr = make_containers.communicate()
-            import pdb; pdb.set_trace()
             raise Exception(stderr)
-            pass
 
     def postflight(self):
         postflight_command = subprocess.Popen(
@@ -86,35 +83,41 @@ class DCOS_Docker:
 
         clean_command.wait()
 
-    @property
-    def masters(self):
+    def _nodes(self, container_base_name, num_containers):
         client = Client()
         nodes = set()
 
-        for master_number in range(1, self._num_masters + 1):
-            container_name = 'dcos-docker-master{number}'.format(
-                number=master_number)
+        for container_number in range(1, num_containers + 1):
+            container_name = 'dcos-docker-container{number}'.format(
+                number=container_number)
             details = client.inspect_container(container=container_name)
             ip_address = details['networksettings']['ipaddress']
             node = Node(ip_address=ip_address)
             nodes.add(node)
 
         return nodes
+
+    @property
+    def masters(self):
+        return self._nodes(
+            container_base_name='dcos-docker-master',
+            num_containers=self._num_masters,
+        )
 
     @property
     def agents(self):
-        client = Client()
-        nodes = set()
+        return self._nodes(
+            container_base_name='dcos-docker-agent',
+            _num_agents=self._num_agents,
+        )
 
-        for agent_number in range(1, self._agents + 1):
-            container_name = 'dcos-docker-agent{number}'.format(
-                number=agent_number)
-            details = client.inspect_container(container=container_name)
-            ip_address = details['networksettings']['ipaddress']
-            node = Node(ip_address=ip_address)
-            nodes.add(node)
+    @property
+    def public_agents(self):
+        return self._nodes(
+            container_base_name='dcos-docker-pubagent',
+            _num_agents=self._num_public_agents,
+        )
 
-        return nodes
 
 class Node:
     """
