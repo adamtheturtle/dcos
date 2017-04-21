@@ -4,7 +4,6 @@ from contextlib import ContextDecorator
 from pathlib import Path
 from typing import Dict, Set
 
-import pytest
 from docker import Client
 from dulwich import porcelain
 
