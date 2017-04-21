@@ -122,6 +122,12 @@ class DCOS_Docker:
 
 
 class Cluster(ContextDecorator):
+    """
+    A record of a DC/OS Cluster.
+
+    This is intended to be used as context manager.
+    """
+
     def __init__(
         self,
         extra_config: Dict,
