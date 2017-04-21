@@ -2,9 +2,10 @@ import subprocess
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Set, Tuple
 
 from docker import Client
+from docker.errors import NotFound
 from dulwich import porcelain
 
 
@@ -31,7 +32,7 @@ class Node:
     def __init__(self, ip_address: str) -> None:
         self.ip_address = ip_address
 
-    def run_as_root(self, args):
+    def run(self, args):
         pass
 
 
@@ -42,9 +43,9 @@ class DCOS_Docker:
         """
         Create a DC/OS Docker cluster
         """
-        self._num_masters = masters
-        self._num_agents = agents
-        self._num_public_agents = public_agents
+        self._masters = masters
+        self._agents = agents
+        self._public_agents = public_agents
 
         self._path = Path('dcos-docker')
 
@@ -69,47 +70,37 @@ class DCOS_Docker:
                 extra_genconf=extra_genconf)
             make_containers_args.append(extra_genconf_arg)
 
-        subprocess.run(
-            args=make_containers_args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=str(self._path),
-        )
+        subprocess.run(args=make_containers_args, cwd=str(self._path))
 
     def postflight(self) -> None:
         """
         Wait for nodes to be ready to run tests against.
         """
-        subprocess.run(
-            ['make', 'postflight'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=str(self._path),
-        )
+        subprocess.run(args=['make', 'postflight'], cwd=str(self._path))
 
     def destroy(self) -> None:
         """
         Destroy all nodes in the cluster.
         """
-        subprocess.run(
-            ['make', 'clean'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=str(self._path),
-        )
+        subprocess.run(args=['make', 'clean'], cwd=str(self._path))
 
-    def _nodes(self, container_base_name: str,
-               num_containers: int) -> Set[Node]:
+    def _nodes(self, container_base_name: str, num_nodes: int) -> Set[Node]:
         """
-        XXX
+        Args:
+            container_base_name: The start of the container names.
+            num_nodes: The number of nodes.
+
+        Returns: ``Node``s corresponding to containers with names starting
+            with ``container_base_name``.
         """
         client = Client()
         nodes = set()
 
-        for container_number in range(1, num_containers + 1):
+        while len(nodes) < num_nodes:
             container_name = '{container_base_name}{number}'.format(
                 container_base_name=container_base_name,
-                number=container_number)
+                number=len(nodes) + 1,
+            )
             details = client.inspect_container(container=container_name)
             ip_address = details['NetworkSettings']['IPAddress']
             node = Node(ip_address=ip_address)
@@ -121,21 +112,7 @@ class DCOS_Docker:
     def masters(self) -> Set[Node]:
         return self._nodes(
             container_base_name='dcos-docker-master',
-            num_containers=self._num_masters,
-        )
-
-    @property
-    def agents(self) -> Set[Node]:
-        return self._nodes(
-            container_base_name='dcos-docker-agent',
-            num_containers=self._num_agents,
-        )
-
-    @property
-    def public_agents(self) -> Set[Node]:
-        return self._nodes(
-            container_base_name='dcos-docker-pubagent',
-            num_containers=self._num_public_agents,
+            num_nodes=self._masters,
         )
 
 
@@ -158,16 +135,12 @@ class Cluster(ContextDecorator):
     def masters(self) -> Set[Node]:
         return self._backend.masters
 
-    @property
-    def agents(self) -> Set[Node]:
-        return self._backend.agents
-
-    @property
-    def public_agents(self) -> Set[Node]:
-        return self._backend.public_agents
-
-    def __exit__(self, *exc) -> None:
+    def __exit__(self, *exc: Tuple[None, None, None]) -> bool:
+        """
+        On exiting, destroy all nodes in the cluster.
+        """
         self._backend.destroy()
+        return False
 
 
 class TestExample:
@@ -193,4 +166,4 @@ class TestExample:
 
         with Cluster(extra_config=config) as cluster:
             (master,) = cluster.masters
-            master.run_as_root(args=['test', '-f', ])
+            master.run(args=['test', '-f', ])
