@@ -54,7 +54,7 @@ class DCOS_Docker:
             default_flow_style=False,
         )
 
-        if not extra_genconf:
+        if not extra_config:
             # Adding {} to the end of the config confuses the parser
             extra_genconf = ''
 
@@ -125,24 +125,24 @@ class DCOS_Docker:
         return nodes
 
     @property
-    def masters(self):
+    def masters(self) -> Set[Node]:
         return self._nodes(
             container_base_name='dcos-docker-master',
             num_containers=self._num_masters,
         )
 
     @property
-    def agents(self):
+    def agents(self) -> Set[Node]:
         return self._nodes(
             container_base_name='dcos-docker-agent',
-            _num_agents=self._num_agents,
+            num_containers=self._num_agents,
         )
 
     @property
-    def public_agents(self):
+    def public_agents(self) -> Set[Node]:
         return self._nodes(
             container_base_name='dcos-docker-pubagent',
-            _num_agents=self._num_public_agents,
+            num_containers=self._num_public_agents,
         )
 
 
