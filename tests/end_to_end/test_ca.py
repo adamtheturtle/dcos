@@ -66,7 +66,7 @@ class DCOS_Docker:
                 default_flow_style=False,
             )
             extra_genconf_arg = "EXTRA_GENCONF_CONFIG={extra_genconf}".format(
-                extra_genconf=extra_genconf),
+                extra_genconf=extra_genconf)
             make_containers_args.append(extra_genconf_arg)
 
         subprocess.run(
