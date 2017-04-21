@@ -163,8 +163,26 @@ class Cluster(ContextDecorator):
 
 class TestExample:
 
-    def test_foo(self):
+    def test_foo(self) -> None:
         config = {'oauth_enabled': 'true'}
         with Cluster(extra_config=config) as cluster:
+            (master,) = cluster.masters
             import pdb; pdb.set_trace()
+            pass
+
+    @pytest.mark.skip()
+    def test_martin_example(self) -> None:
+        config = {
+            'cluster_docker_credentials': {
+                'auths': {
+                    'https://index.docker.io/v1/': {
+                        'auth': 'redacted'
+                    },
+                },
+            },
+            'cluster_docker_credentials_enabled': True,
+        }
+
+        with Cluster(extra_config=config) as cluster:
+            (master,) = cluster.masters
             pass
