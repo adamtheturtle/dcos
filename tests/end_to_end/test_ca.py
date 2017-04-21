@@ -2,10 +2,9 @@ import subprocess
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, TypeVar
 
 from docker import Client
-from docker.errors import NotFound
 from dulwich import porcelain
 
 
@@ -26,7 +25,7 @@ Improvements:
 
 class Node:
     """
-    XXX
+    A record of a DC/OS cluster node.
     """
 
     def __init__(self, ip_address: str) -> None:
@@ -37,6 +36,9 @@ class Node:
 
 
 class DCOS_Docker:
+    """
+    A record of a DC/OS Docker cluster.
+    """
 
     def __init__(self, masters: int, agents: int, public_agents: int,
                  extra_config: Dict) -> None:
@@ -54,23 +56,21 @@ class DCOS_Docker:
         if not self._path.exists():
             porcelain.clone(dc_os_docker, self._path)
 
-        make_containers_args = [
-            "make",
-            "MASTERS={masters}".format(masters=masters),
-            "AGENTS={agents}".format(agents=agents),
-            "PUBLIC_AGENTS={public_agents}".format(public_agents=public_agents),
-        ]
+        make_containers_args = {
+            'MASTERS': masters,
+            'AGENTS': agents,
+            'PUBLIC_AGENTS': public_agents,
+        }
 
         if extra_config:
-            extra_genconf = yaml.dump(
+            make_containers_args['EXTRA_GENCONF_CONFIG'] = yaml.dump(
                 data=extra_config,
                 default_flow_style=False,
             )
-            extra_genconf_arg = "EXTRA_GENCONF_CONFIG={extra_genconf}".format(
-                extra_genconf=extra_genconf)
-            make_containers_args.append(extra_genconf_arg)
 
-        subprocess.run(args=make_containers_args, cwd=str(self._path))
+        args = ['make'] + ['{key}={value}'.format(key=key, value=value)
+                           for key, value in make_containers_args.items()]
+        subprocess.run(args=args, cwd=str(self._path))
 
     def postflight(self) -> None:
         """
@@ -94,7 +94,7 @@ class DCOS_Docker:
             with ``container_base_name``.
         """
         client = Client()
-        nodes = set()
+        nodes = set([])  # type: Set[Node]
 
         while len(nodes) < num_nodes:
             container_name = '{container_base_name}{number}'.format(
@@ -128,7 +128,7 @@ class Cluster(ContextDecorator):
         )
         self._backend.postflight()
 
-    def __enter__(self):
+    def __enter__(self) -> 'Cluster':
         return self
 
     @property
