@@ -18,7 +18,9 @@ cd tests/end_to_end/
 mkdir -p vagrant
 cd vagrant
 curl -O https://raw.githubusercontent.com/dcos/dcos-docker/master/vagrant/resize-disk.sh
-curl -O https://github.com/dcos/dcos-docker/blob/master/vagrant/vbox-network.sh
+curl -O https://raw.githubusercontent.com/dcos/dcos-docker/master/vagrant/vbox-network.sh
+chmod +x resize-disk.sh
+chmod +x vbox-network.sh
 cd ..
 curl -O https://raw.githubusercontent.com/dcos/dcos-docker/master/Vagrantfile
 vagrant/resize-disk.sh 102400
