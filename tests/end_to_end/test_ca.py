@@ -2,7 +2,7 @@ import subprocess
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from typing import Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from docker import Client
 from dulwich import porcelain
@@ -29,7 +29,7 @@ class Node:
     def __init__(self, ip_address: str) -> None:
         self.ip_address = ip_address
 
-    def run(self, args):
+    def run(self, args: List[str]) -> None:
         pass
 
 
