@@ -24,18 +24,22 @@ class TestExample:
 
         with Cluster(extra_config=config) as cluster:
             (master, ) = cluster.masters
-            master.run(args=[
-                'test',
-                '-f',
-                '/etc/mesosphere/docker_credentials',
-            ])
+            master.run(
+                args=[
+                    'test',
+                    '-f',
+                    '/etc/mesosphere/docker_credentials',
+                ]
+            )
 
     def test_file_does_not_exist(self) -> None:
         with Cluster(extra_config={}) as cluster:
             (master, ) = cluster.masters
             with pytest.raises(CalledProcessError):
-                master.run(args=[
-                    'test',
-                    '-f',
-                    '/etc/mesosphere/does_not_exist',
-                ])
+                master.run(
+                    args=[
+                        'test',
+                        '-f',
+                        '/etc/mesosphere/does_not_exist',
+                    ]
+                )

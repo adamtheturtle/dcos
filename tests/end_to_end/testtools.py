@@ -27,8 +27,9 @@ class Node:
     A record of a DC/OS cluster node.
     """
 
-    def __init__(self, ip_address: str) -> None:
+    def __init__(self, ip_address: str, ssh_key_path: Path) -> None:
         self._ip_address = ip_address
+        self._ssh_key_path = ssh_key_path
 
     def run(self, args: List[str]) -> subprocess.CompletedProcess:
         """
@@ -45,8 +46,15 @@ class Node:
         """
         ssh_args = [
             'ssh',
+            # Suppress warnings.
+            # In particular, we don't care about remote host identification
+            # changes.
+            "-q",
             # The node may be an unknown host.
-            "-o", "StrictHostKeyChecking=no",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-i",
+            str(self._ssh_key_path),
             self._ip_address,
         ] + args
 
@@ -58,11 +66,13 @@ class DCOS_Docker:
     A record of a DC/OS Docker cluster.
     """
 
-    def __init__(self,
-                 masters: int,
-                 agents: int,
-                 public_agents: int,
-                 extra_config: Dict) -> None:
+    def __init__(
+        self,
+        masters: int,
+        agents: int,
+        public_agents: int,
+        extra_config: Dict
+    ) -> None:
         """
         Create a DC/OS Docker cluster
         """
@@ -86,7 +96,8 @@ class DCOS_Docker:
         if extra_config:
             make_containers_args['EXTRA_GENCONF_CONFIG'] = yaml.dump(
                 data=extra_config,
-                default_flow_style=False, )
+                default_flow_style=False,
+            )
 
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
@@ -99,7 +110,8 @@ class DCOS_Docker:
         Wait for nodes to be ready to run tests against.
         """
         subprocess.run(
-            args=['make', 'postflight'], cwd=str(self._path), check=True)
+            args=['make', 'postflight'], cwd=str(self._path), check=True
+        )
 
     def destroy(self) -> None:
         """
@@ -122,10 +134,14 @@ class DCOS_Docker:
         while len(nodes) < num_nodes:
             container_name = '{container_base_name}{number}'.format(
                 container_base_name=container_base_name,
-                number=len(nodes) + 1, )
+                number=len(nodes) + 1,
+            )
             details = client.inspect_container(container=container_name)
             ip_address = details['NetworkSettings']['IPAddress']
-            node = Node(ip_address=ip_address)
+            node = Node(
+                ip_address=ip_address,
+                ssh_key_path=self._path / 'include' / 'ssh' / 'id_rsa',
+            )
             nodes.add(node)
 
         return nodes
@@ -134,7 +150,8 @@ class DCOS_Docker:
     def masters(self) -> Set[Node]:
         return self._nodes(
             container_base_name='dcos-docker-master',
-            num_nodes=self._masters, )
+            num_nodes=self._masters,
+        )
 
 
 class Cluster(ContextDecorator):
@@ -144,16 +161,19 @@ class Cluster(ContextDecorator):
     This is intended to be used as context manager.
     """
 
-    def __init__(self,
-                 extra_config: Dict,
-                 masters: int=1,
-                 agents: int=0,
-                 public_agents: int=0) -> None:
+    def __init__(
+        self,
+        extra_config: Dict,
+        masters: int=1,
+        agents: int=0,
+        public_agents: int=0
+    ) -> None:
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
             public_agents=public_agents,
-            extra_config=extra_config, )
+            extra_config=extra_config,
+        )
         self._backend.postflight()
 
     def __enter__(self) -> 'Cluster':
