@@ -2,9 +2,12 @@ import subprocess
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
+from typing import Dict, Set
 
+import pytest
 from docker import Client
 from dulwich import porcelain
+
 
 """
 Improvements:
@@ -16,9 +19,22 @@ Improvements:
 """
 
 
+class Node:
+    """
+    XXX
+    """
+
+    def __init__(self, ip_address) -> None:
+        self.ip_address = ip_address
+
+    def run_as_root(self):
+        pass
+
+
 class DCOS_Docker:
 
-    def __init__(self, masters, agents, public_agents, extra_config):
+    def __init__(self, masters: int, agents: int, public_agents: int,
+                 extra_config: Dict) -> None:
         """
         This can likely be replaced by some kind of upstream.json thing
         """
@@ -47,7 +63,8 @@ class DCOS_Docker:
         make_containers = subprocess.Popen(
             [
                 "make",
-                "EXTRA_GENCONF_CONFIG=\"" + extra_genconf + "\"",
+                "EXTRA_GENCONF_CONFIG={extra_genconf}".format(
+                    extra_genconf=extra_genconf),
                 "MASTERS={masters}".format(masters=masters),
                 "AGENTS={agents}".format(agents=agents),
                 "PUBLIC_AGENTS={public_agents}".format(public_agents=public_agents),
@@ -60,10 +77,14 @@ class DCOS_Docker:
         result = make_containers.wait()
 
         if result != 0:
+            import pdb; pdb.set_trace()
             stdout, stderr = make_containers.communicate()
             raise Exception(stderr)
 
-    def postflight(self):
+    def postflight(self) -> None:
+        """
+        Wait for nodes to be ready to run tests against.
+        """
         postflight_command = subprocess.Popen(
             ['make', 'postflight'],
             stdout=subprocess.PIPE,
@@ -73,7 +94,10 @@ class DCOS_Docker:
 
         postflight_command.wait()
 
-    def destroy(self):
+    def destroy(self) -> None:
+        """
+        Destroy all nodes in the cluster.
+        """
         clean_command = subprocess.Popen(
             ['make', 'clean'],
             stdout=subprocess.PIPE,
@@ -83,15 +107,20 @@ class DCOS_Docker:
 
         clean_command.wait()
 
-    def _nodes(self, container_base_name, num_containers):
+    def _nodes(self, container_base_name: str,
+               num_containers: int) -> Set[Node]:
+        """
+        XXX
+        """
         client = Client()
         nodes = set()
 
         for container_number in range(1, num_containers + 1):
-            container_name = 'dcos-docker-container{number}'.format(
+            container_name = '{container_base_name}{number}'.format(
+                container_base_name=container_base_name,
                 number=container_number)
             details = client.inspect_container(container=container_name)
-            ip_address = details['networksettings']['ipaddress']
+            ip_address = details['NetworkSettings']['IPAddress']
             node = Node(ip_address=ip_address)
             nodes.add(node)
 
@@ -119,21 +148,9 @@ class DCOS_Docker:
         )
 
 
-class Node:
-    """
-    XXX
-    """
-
-    def __init__(self, ip_address):
-        self.ip_address = ip_address
-
-    def run_as_root(self):
-        pass
-
-
 class Cluster(ContextDecorator):
 
-    def __init__(self, extra_config, masters=1, agents=1, public_agents=1):
+    def __init__(self, extra_config: Dict, masters: int = 1, agents: int = 1, public_agents: int = 1):
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
