@@ -2,12 +2,10 @@ import subprocess
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from typing import Dict, Set, Tuple, TypeVar
+from typing import Dict, Set, Tuple
 
 from docker import Client
 from dulwich import porcelain
-
-
 """
 Improvements:
 
@@ -40,8 +38,13 @@ class DCOS_Docker:
     A record of a DC/OS Docker cluster.
     """
 
-    def __init__(self, masters: int, agents: int, public_agents: int,
-                 extra_config: Dict) -> None:
+    def __init__(
+        self,
+        masters: int,
+        agents: int,
+        public_agents: int,
+        extra_config: Dict
+    ) -> None:
         """
         Create a DC/OS Docker cluster
         """
@@ -68,8 +71,10 @@ class DCOS_Docker:
                 default_flow_style=False,
             )
 
-        args = ['make'] + ['{key}={value}'.format(key=key, value=value)
-                           for key, value in make_containers_args.items()]
+        args = ['make'] + [
+            '{key}={value}'.format(key=key, value=value)
+            for key, value in make_containers_args.items()
+        ]
         subprocess.run(args=args, cwd=str(self._path))
 
     def postflight(self) -> None:
@@ -117,9 +122,13 @@ class DCOS_Docker:
 
 
 class Cluster(ContextDecorator):
-
-    def __init__(self, extra_config: Dict, masters: int = 1, agents: int = 0,
-                 public_agents: int = 0) -> None:
+    def __init__(
+        self,
+        extra_config: Dict,
+        masters: int=1,
+        agents: int=0,
+        public_agents: int=0
+    ) -> None:
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
@@ -150,7 +159,7 @@ class TestExample:
 
     def test_empty_config(self) -> None:
         with Cluster(extra_config={}) as cluster:
-            (master,) = cluster.masters
+            (master, ) = cluster.masters
 
     def test_martin_example(self) -> None:
         config = {
@@ -165,5 +174,8 @@ class TestExample:
         }
 
         with Cluster(extra_config=config) as cluster:
-            (master,) = cluster.masters
-            master.run(args=['test', '-f', ])
+            (master, ) = cluster.masters
+            master.run(args=[
+                'test',
+                '-f',
+            ])
