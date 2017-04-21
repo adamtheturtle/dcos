@@ -6,9 +6,8 @@ from typing import Dict, List, Set, Tuple
 
 from docker import Client
 from dulwich import porcelain
-
 """
-Improvements:
+Potential improvements:
 
     - Selectable backends e.g. AWS
     - Run on CI
@@ -19,6 +18,7 @@ Improvements:
         DC/OS-E or somewhere else in DC/OS.
     - Instead of cloning DC/OS Docker, instead use a more appropriate system
         (e.g. upstream.json)
+    - Log command output properly
 """
 
 
@@ -28,10 +28,29 @@ class Node:
     """
 
     def __init__(self, ip_address: str) -> None:
-        self.ip_address = ip_address
+        self._ip_address = ip_address
 
-    def run(self, args: List[str]) -> None:
-        pass
+    def run(self, args: List[str]) -> subprocess.CompletedProcess:
+        """
+        Run a command on this ``Node``.
+
+        Args:
+            The command to run on the ``Node``.
+
+        Returns:
+            The representation of the finished process.
+
+        Raises:
+            CalledProcessError: The process exited with a non-zero code.
+        """
+        ssh_args = [
+            'ssh',
+            # The node may be an unknown host.
+            "-o", "StrictHostKeyChecking=no",
+            self._ip_address,
+        ] + args
+
+        subprocess.run(args=ssh_args, check=True)
 
 
 class DCOS_Docker:
@@ -39,13 +58,11 @@ class DCOS_Docker:
     A record of a DC/OS Docker cluster.
     """
 
-    def __init__(
-        self,
-        masters: int,
-        agents: int,
-        public_agents: int,
-        extra_config: Dict
-    ) -> None:
+    def __init__(self,
+                 masters: int,
+                 agents: int,
+                 public_agents: int,
+                 extra_config: Dict) -> None:
         """
         Create a DC/OS Docker cluster
         """
@@ -69,26 +86,26 @@ class DCOS_Docker:
         if extra_config:
             make_containers_args['EXTRA_GENCONF_CONFIG'] = yaml.dump(
                 data=extra_config,
-                default_flow_style=False,
-            )
+                default_flow_style=False, )
 
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
             for key, value in make_containers_args.items()
         ]
-        subprocess.run(args=args, cwd=str(self._path))
+        subprocess.run(args=args, cwd=str(self._path), check=True)
 
     def postflight(self) -> None:
         """
         Wait for nodes to be ready to run tests against.
         """
-        subprocess.run(args=['make', 'postflight'], cwd=str(self._path))
+        subprocess.run(
+            args=['make', 'postflight'], cwd=str(self._path), check=True)
 
     def destroy(self) -> None:
         """
         Destroy all nodes in the cluster.
         """
-        subprocess.run(args=['make', 'clean'], cwd=str(self._path))
+        subprocess.run(args=['make', 'clean'], cwd=str(self._path), check=True)
 
     def _nodes(self, container_base_name: str, num_nodes: int) -> Set[Node]:
         """
@@ -105,8 +122,7 @@ class DCOS_Docker:
         while len(nodes) < num_nodes:
             container_name = '{container_base_name}{number}'.format(
                 container_base_name=container_base_name,
-                number=len(nodes) + 1,
-            )
+                number=len(nodes) + 1, )
             details = client.inspect_container(container=container_name)
             ip_address = details['NetworkSettings']['IPAddress']
             node = Node(ip_address=ip_address)
@@ -118,8 +134,7 @@ class DCOS_Docker:
     def masters(self) -> Set[Node]:
         return self._nodes(
             container_base_name='dcos-docker-master',
-            num_nodes=self._masters,
-        )
+            num_nodes=self._masters, )
 
 
 class Cluster(ContextDecorator):
@@ -129,19 +144,16 @@ class Cluster(ContextDecorator):
     This is intended to be used as context manager.
     """
 
-    def __init__(
-        self,
-        extra_config: Dict,
-        masters: int=1,
-        agents: int=0,
-        public_agents: int=0
-    ) -> None:
+    def __init__(self,
+                 extra_config: Dict,
+                 masters: int=1,
+                 agents: int=0,
+                 public_agents: int=0) -> None:
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
             public_agents=public_agents,
-            extra_config=extra_config,
-        )
+            extra_config=extra_config, )
         self._backend.postflight()
 
     def __enter__(self) -> 'Cluster':
