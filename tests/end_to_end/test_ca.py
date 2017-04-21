@@ -11,10 +11,15 @@ from dulwich import porcelain
 """
 Improvements:
 
-    - Selectable backends
-        e.g. AWS
+    - Selectable backends e.g. AWS
     - Run on CI
+        - Currently this just downloads the latest `master`.  On CI and
+        locally, we want to run against the current build.
     - Move somewhere appropriate
+        - This is just in a new directory in DC/OS but it should maybe be in
+        DC/OS-E or somewhere else in DC/OS.
+    - Instead of cloning DC/OS Docker, instead use a more appropriate system
+        (e.g. upstream.json)
 """
 
 
@@ -26,7 +31,7 @@ class Node:
     def __init__(self, ip_address: str) -> None:
         self.ip_address = ip_address
 
-    def run_as_root(self):
+    def run_as_root(self, args):
         pass
 
 
@@ -35,7 +40,7 @@ class DCOS_Docker:
     def __init__(self, masters: int, agents: int, public_agents: int,
                  extra_config: Dict) -> None:
         """
-        This can likely be replaced by some kind of upstream.json thing
+        Create a DC/OS Docker cluster
         """
         self._num_masters = masters
         self._num_agents = agents
@@ -48,61 +53,50 @@ class DCOS_Docker:
         if not self._path.exists():
             porcelain.clone(dc_os_docker, self._path)
 
-        extra_genconf = yaml.dump(
-            data=extra_config,
-            default_flow_style=False,
-        )
+        make_containers_args = [
+            "make",
+            "MASTERS={masters}".format(masters=masters),
+            "AGENTS={agents}".format(agents=agents),
+            "PUBLIC_AGENTS={public_agents}".format(public_agents=public_agents),
+        ]
 
-        if not extra_config:
-            # Adding {} to the end of the config confuses the parser
-            extra_genconf = ''
+        if extra_config:
+            extra_genconf = yaml.dump(
+                data=extra_config,
+                default_flow_style=False,
+            )
+            extra_genconf_arg = "EXTRA_GENCONF_CONFIG={extra_genconf}".format(
+                extra_genconf=extra_genconf),
+            make_containers_args.append(extra_genconf_arg)
 
-        make_containers = subprocess.Popen(
-            [
-                "make",
-                "EXTRA_GENCONF_CONFIG={extra_genconf}".format(
-                    extra_genconf=extra_genconf),
-                "MASTERS={masters}".format(masters=masters),
-                "AGENTS={agents}".format(agents=agents),
-                "PUBLIC_AGENTS={public_agents}".format(public_agents=public_agents),
-            ],
+        subprocess.run(
+            args=make_containers_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=str(self._path),
         )
 
-        result = make_containers.wait()
-
-        if result != 0:
-            import pdb; pdb.set_trace()
-            stdout, stderr = make_containers.communicate()
-            raise Exception(stderr)
-
     def postflight(self) -> None:
         """
         Wait for nodes to be ready to run tests against.
         """
-        postflight_command = subprocess.Popen(
+        subprocess.run(
             ['make', 'postflight'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=str(self._path),
         )
 
-        postflight_command.wait()
-
     def destroy(self) -> None:
         """
         Destroy all nodes in the cluster.
         """
-        clean_command = subprocess.Popen(
+        subprocess.run(
             ['make', 'clean'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=str(self._path),
         )
-
-        clean_command.wait()
 
     def _nodes(self, container_base_name: str,
                num_containers: int) -> Set[Node]:
@@ -147,8 +141,8 @@ class DCOS_Docker:
 
 class Cluster(ContextDecorator):
 
-    def __init__(self, extra_config: Dict, masters: int = 1, agents: int = 1,
-                 public_agents: int = 1) -> None:
+    def __init__(self, extra_config: Dict, masters: int = 1, agents: int = 0,
+                 public_agents: int = 0) -> None:
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
@@ -177,6 +171,9 @@ class Cluster(ContextDecorator):
 
 
 class TestExample:
+    """
+    Example tests which demonstrate the features of the test harness.
+    """
 
     def test_empty_config(self) -> None:
         with Cluster(extra_config={}) as cluster:
@@ -196,3 +193,4 @@ class TestExample:
 
         with Cluster(extra_config=config) as cluster:
             (master,) = cluster.masters
+            master.run_as_root(args=['test', '-f', ])
