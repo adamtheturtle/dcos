@@ -10,20 +10,6 @@ from typing import Dict, List, Set, Tuple, Union
 
 from docker import Client
 from dulwich import porcelain
-"""
-Potential improvements:
-
-    - Selectable backends e.g. AWS
-    - Run on CI
-        - Currently this just downloads the latest `master`.  On CI and
-        locally, we want to run against the current build.
-    - Move somewhere appropriate
-        - This is just in a new directory in DC/OS but it should maybe be in
-        DC/OS-E or somewhere else in DC/OS.
-    - Instead of cloning DC/OS Docker, instead use a more appropriate system
-        (e.g. upstream.json)
-    - Log command output properly
-"""
 
 
 class Node:

@@ -33,6 +33,9 @@ Then when in the environment, install dependencies and enter a `virtualenv`:
 source bootstrap.sh
 ```
 
+Then set the test options.
+See "Options".
+
 Then run the tests:
 
 ```sh
@@ -41,4 +44,39 @@ pytest
 
 ### Options
 
-Copy `sample-configuration.yaml` to `configuration.yaml`.
+Configuration options are specified in `sample-configuration.yaml`.
+Copy this file to `configuration.yaml` and fill it in as appropriate.
+Values with `null` in the sample configuration are not required.
+
+
+# Discussion and future
+
+## Selectable backends
+
+I can imagine that in the future this tool will need to be run on different backends.
+Therefore I have tried to abstract `Cluster` from DC/OS Docker.
+Discuss with Daniel Baker the overlap between this tool and future plans.
+
+## Options passing
+
+This POC uses a `configuration.yaml` file.
+Other options include command line options and environment variables.
+I can imagine this getting very unweildy.
+Similar high level test tools which I have worked on have grown to allow a very large number of options and I believe that this could be the case here.
+
+## Where these tests live
+
+These tests are currently in their own directory with their own requirements and such.
+
+This could be moved to DCOS-E, or somewhere else in DCOS-OSS.
+
+We should when these tests are run.
+E.g. on every build on CI, nightly, etc.
+
+This also brings in discussion about where the debug output should go.
+
+## How these tests get DC/OS Docker
+
+This could clone DC/OS Docker.
+This could use somethink like `pkgpanda`.
+This could continue as-is - using a path to an existing clone.
