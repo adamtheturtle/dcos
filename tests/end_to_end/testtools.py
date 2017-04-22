@@ -60,7 +60,7 @@ class Node:
         subprocess.run(args=ssh_args, check=True)
 
 
-class DCOS_Docker:
+class _DCOS_Docker:
     """
     A record of a DC/OS Docker cluster.
     """
@@ -78,6 +78,19 @@ class DCOS_Docker:
     ) -> None:
         """
         Create a DC/OS Docker cluster.
+
+        Args:
+            masters: The number of master nodes to create.
+            agents: The number of master nodes to create.
+            public_agents: The number of master nodes to create.
+            extra_config: DC/OS Docker comes with a "base" configuration.
+                This dictionary can contain extra installation configuration
+                variables.
+            generate_config_url: The URL to a build artifact to install.
+            generate_config_path: The path to a build artifact to install.
+            enterprise_cluster: Whether or not the build artifact is an
+                enterprise build.
+            dcos_docker_path: The path to a clone of DC/OS Docker.
         """
         self._masters = masters
         self._agents = agents
@@ -191,7 +204,7 @@ class Cluster(ContextDecorator):
             generate_config_path = Path(
                 tests_config['dcos_generate_config_path'])
 
-        self._backend = DCOS_Docker(
+        self._backend = _DCOS_Docker(
             masters=masters,
             agents=agents,
             public_agents=public_agents,
