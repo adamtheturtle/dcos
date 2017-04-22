@@ -49,6 +49,7 @@ Copy this file to `configuration.yaml` and fill it in as appropriate.
 Values with `null` in the sample configuration are not required.
 
 The DC/OS Docker clone should be in a location which the tests can write to.
+In the Vagrant development environment, `/tmp/dcos-docker` is a suitable place.
 This directory may be interfered with by the tests.
 
 
