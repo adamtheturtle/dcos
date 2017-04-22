@@ -91,16 +91,7 @@ class DCOS_Docker:
         self._agents = agents
         self._public_agents = public_agents
 
-        # We clone in the directory containing this file as we need write
-        # permissions, for example to delete the directory.
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        clone_dir = mkdtemp(dir=file_dir)
-        self._path = Path(clone_dir)
-
-        porcelain.clone(
-            source='https://github.com/dcos/dcos-docker.git',
-            target=str(self._path),
-        )
+        self._path = self._repository()
 
         make_containers_args = {
             'MASTERS': masters,
@@ -119,6 +110,25 @@ class DCOS_Docker:
             for key, value in make_containers_args.items()
         ]
         subprocess.run(args=args, cwd=str(self._path), check=True)
+
+    def _repository(self) -> Path:
+        """
+        Clone DC/OS Docker into a temporary directory and return its path.
+
+        In the future this may be replaced, for example, by a `pkgpanda`
+        package.
+        """
+        # We clone in the directory containing this file as we need write
+        # permissions, for example to delete the directory.
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        clone_dir = mkdtemp(dir=file_dir)
+
+        porcelain.clone(
+            source='https://github.com/dcos/dcos-docker.git',
+            target=clone_dir,
+        )
+
+        return Path(clone_dir)
 
     def postflight(self) -> None:
         """
