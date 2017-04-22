@@ -1,7 +1,9 @@
 import subprocess
+import time
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Dict, List, Set, Tuple
 
 from docker import Client
@@ -87,12 +89,13 @@ class DCOS_Docker:
         self._agents = agents
         self._public_agents = public_agents
 
-        self._path = Path('dcos-docker')
+        clone_dir = TemporaryDirectory()
+        self._path = Path(clone_dir.name)
 
-        dc_os_docker = 'https://github.com/dcos/dcos-docker.git'
-
-        if not self._path.exists():
-            porcelain.clone(dc_os_docker, self._path)
+        porcelain.clone(
+            source='https://github.com/dcos/dcos-docker.git',
+            target=clone_dir.name,
+        )
 
         make_containers_args = {
             'MASTERS': masters,
@@ -116,9 +119,13 @@ class DCOS_Docker:
         """
         Wait for nodes to be ready to run tests against.
         """
-        subprocess.run(
-            args=['make', 'postflight'], cwd=str(self._path), check=True
-        )
+        enterprise = False
+        if enterprise:
+            time.sleep(8 * 60)
+        else:
+            subprocess.run(
+                args=['make', 'postflight'], cwd=str(self._path), check=True
+            )
 
     def destroy(self) -> None:
         """
