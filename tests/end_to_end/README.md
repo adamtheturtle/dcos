@@ -48,6 +48,9 @@ Configuration options are specified in `sample-configuration.yaml`.
 Copy this file to `configuration.yaml` and fill it in as appropriate.
 Values with `null` in the sample configuration are not required.
 
+The DC/OS Docker clone should be in a location which the tests can write to.
+This directory may be interfered with by the tests.
+
 
 # Discussion and future
 

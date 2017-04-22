@@ -118,6 +118,13 @@ class _DCOS_Docker:
             make_containers_args['DCOS_GENERATE_CONFIG_PATH'
                                  ] = str(generate_config_path)
 
+        # If there is an existing build artifact, a new one is not downloaded.
+        existing_artifact_path = dcos_docker_path / 'dcos_generate_config.sh'
+        if existing_artifact_path.exists():
+            existing_artifact_path.unlink()
+
+        subprocess.check_output(args=['make', 'clean'], cwd=str(self._path))
+
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
             for key, value in make_containers_args.items()
