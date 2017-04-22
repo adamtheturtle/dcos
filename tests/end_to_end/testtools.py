@@ -57,7 +57,7 @@ class Node:
             self._ip_address,
         ] + args
 
-        subprocess.run(args=ssh_args, check=True)
+        subprocess.check_output(args=ssh_args)
 
 
 class _DCOS_Docker:
@@ -122,7 +122,7 @@ class _DCOS_Docker:
             '{key}={value}'.format(key=key, value=value)
             for key, value in make_containers_args.items()
         ]
-        subprocess.run(args=args, cwd=str(self._path), check=True)
+        subprocess.check_output(args=args, cwd=str(self._path))
 
     def postflight(self) -> None:
         """
@@ -135,15 +135,13 @@ class _DCOS_Docker:
             time.sleep(8 * 60)
             return
 
-        subprocess.run(
-            args=['make', 'postflight'], cwd=str(self._path), check=True
-        )
+        subprocess.check_output(args=['make', 'postflight'], cwd=str(self._path))
 
     def destroy(self) -> None:
         """
         Destroy all nodes in the cluster.
         """
-        subprocess.run(args=['make', 'clean'], cwd=str(self._path), check=True)
+        subprocess.check_output(args=['make', 'clean'], cwd=str(self._path))
 
     def _nodes(self, container_base_name: str, num_nodes: int) -> Set[Node]:
         """
