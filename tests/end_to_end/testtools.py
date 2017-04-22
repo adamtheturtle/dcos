@@ -1,15 +1,11 @@
-import os
-import shutil
 import subprocess
 import time
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from tempfile import mkdtemp
 from typing import Dict, List, Set, Tuple, Union
 
 from docker import Client
-from dulwich import porcelain
 
 
 class Node:
@@ -78,6 +74,7 @@ class DCOS_Docker:
         generate_config_url: Union[None, str],
         generate_config_path: Union[None, str],
         enterprise_cluster: bool,
+        dcos_docker_path: Path,
     ) -> None:
         """
         Create a DC/OS Docker cluster.
@@ -86,8 +83,7 @@ class DCOS_Docker:
         self._agents = agents
         self._public_agents = public_agents
         self._enterprise_cluster = enterprise_cluster
-
-        self._path = self._repository()
+        self._path = dcos_docker_path
 
         make_containers_args = {
             'MASTERS': str(masters),
@@ -115,25 +111,6 @@ class DCOS_Docker:
         ]
         subprocess.run(args=args, cwd=str(self._path), check=True)
 
-    def _repository(self) -> Path:
-        """
-        Clone DC/OS Docker into a temporary directory and return its path.
-
-        In the future this may be replaced, for example, by a `pkgpanda`
-        package.
-        """
-        # We clone in the directory containing this file as we need write
-        # permissions, for example to delete the directory.
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        clone_dir = mkdtemp(dir=file_dir)
-
-        porcelain.clone(
-            source='https://github.com/dcos/dcos-docker.git',
-            target=clone_dir,
-        )
-
-        return Path(clone_dir)
-
     def postflight(self) -> None:
         """
         Wait for nodes to be ready to run tests against.
@@ -154,7 +131,6 @@ class DCOS_Docker:
         Destroy all nodes in the cluster.
         """
         subprocess.run(args=['make', 'clean'], cwd=str(self._path), check=True)
-        shutil.rmtree(path=str(self._path))
 
     def _nodes(self, container_base_name: str, num_nodes: int) -> Set[Node]:
         """
@@ -206,7 +182,8 @@ class Cluster(ContextDecorator):
         public_agents: int=0
     ) -> None:
 
-        tests_config = yaml.load('configuration.yaml')
+        with open('configuration.yaml') as configuration:
+            tests_config = yaml.load(configuration)
 
         self._backend = DCOS_Docker(
             masters=masters,
@@ -216,6 +193,7 @@ class Cluster(ContextDecorator):
             generate_config_url=tests_config['dcos_generate_config_url'],
             generate_config_path=tests_config['dcos_generate_config_path'],
             enterprise_cluster=tests_config['enterprise_cluster'],
+            dcos_docker_path=tests_config['dcos_docker_path'],
         )
         self._backend.postflight()
 
