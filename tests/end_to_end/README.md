@@ -38,3 +38,5 @@ Then run the tests:
 ```sh
 pytest
 ```
+
+### Options

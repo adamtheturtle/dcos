@@ -1,9 +1,11 @@
+import os
+import shutil
 import subprocess
 import time
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from tempfile import mkdtemp
 from typing import Dict, List, Set, Tuple
 
 from docker import Client
@@ -89,12 +91,17 @@ class DCOS_Docker:
         self._agents = agents
         self._public_agents = public_agents
 
-        clone_dir = TemporaryDirectory()
-        self._path = Path(clone_dir.name)
+        self._path = 
+
+        # We clone in the directory containing this file as we need write
+        # permissions.
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        clone_dir = mkdtemp(dir=file_dir)
+        self._path = Path(clone_dir)
 
         porcelain.clone(
             source='https://github.com/dcos/dcos-docker.git',
-            target=clone_dir.name,
+            target=str(self._path),
         )
 
         make_containers_args = {
@@ -132,6 +139,7 @@ class DCOS_Docker:
         Destroy all nodes in the cluster.
         """
         subprocess.run(args=['make', 'clean'], cwd=str(self._path), check=True)
+        shutil.rmtree(path=str(self._path))
 
     def _nodes(self, container_base_name: str, num_nodes: int) -> Set[Node]:
         """

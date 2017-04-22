@@ -14,7 +14,14 @@ class TestExample:
     def path(self) -> str:
         return '/opt/mesosphere/etc/docker_credentials'
 
-    def test_martin_example(self, path: str) -> None:
+    def test_extend_config(self, path: str) -> None:
+        """
+        This example demonstrates that it is possible to create a cluster
+        with an extended configuration file.
+
+        See ``test_file_does_not_exist`` for evidence that the custom
+        configuration is used.
+        """
         config = {
             'cluster_docker_credentials': {
                 'auths': {
@@ -31,6 +38,9 @@ class TestExample:
             master.run_as_root(args=['test', '-f', path])
 
     def test_file_does_not_exist(self, path: str) -> None:
+        """
+        This example demonstrates that a non-0 return code from
+        """
         with Cluster(extra_config={}) as cluster:
             (master, ) = cluster.masters
             with pytest.raises(CalledProcessError):
