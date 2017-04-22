@@ -40,3 +40,5 @@ pytest
 ```
 
 ### Options
+
+Copy `sample-configuration.yaml` to `configuration.yaml`.

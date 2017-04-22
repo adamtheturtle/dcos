@@ -6,7 +6,7 @@ import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
 from tempfile import mkdtemp
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, Union
 
 from docker import Client
 from dulwich import porcelain
@@ -32,6 +32,12 @@ class Node:
     """
 
     def __init__(self, ip_address: str, ssh_key_path: Path) -> None:
+        """
+        Args:
+            ip_address: The IP address of the node.
+            ssh_key_path: The path to an SSH key which can be used to SSH to
+                the node as the `root` user.
+        """
         self._ip_address = ip_address
         self._ssh_key_path = ssh_key_path
 
@@ -40,7 +46,7 @@ class Node:
         Run a command on this ``Node``.
 
         Args:
-            The command to run on the ``Node``.
+            args: The command to run on the ``Node``.
 
         Returns:
             The representation of the finished process.
@@ -82,28 +88,40 @@ class DCOS_Docker:
         masters: int,
         agents: int,
         public_agents: int,
-        extra_config: Dict
+        extra_config: Dict,
+        generate_config_url: Union[None, str],
+        generate_config_path: Union[None, str],
+        enterprise_cluster: bool,
     ) -> None:
         """
-        Create a DC/OS Docker cluster
+        Create a DC/OS Docker cluster.
         """
         self._masters = masters
         self._agents = agents
         self._public_agents = public_agents
+        self._enterprise_cluster = enterprise_cluster
 
         self._path = self._repository()
 
         make_containers_args = {
-            'MASTERS': masters,
-            'AGENTS': agents,
-            'PUBLIC_AGENTS': public_agents,
-        }
+            'MASTERS': str(masters),
+            'AGENTS': str(agents),
+            'PUBLIC_AGENTS': str(public_agents),
+        }  # type: Dict[str, str]
 
         if extra_config:
             make_containers_args['EXTRA_GENCONF_CONFIG'] = yaml.dump(
                 data=extra_config,
                 default_flow_style=False,
             )
+
+        if generate_config_url:
+            make_containers_args['DCOS_GENERATE_CONFIG_URL'
+                                 ] = generate_config_url
+
+        if generate_config_path:
+            make_containers_args['DCOS_GENERATE_CONFIG_PATH'
+                                 ] = generate_config_path
 
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
@@ -134,13 +152,16 @@ class DCOS_Docker:
         """
         Wait for nodes to be ready to run tests against.
         """
-        enterprise = False
-        if enterprise:
+        # `make postflight` does not work for enterprise clusters.
+        # We therefore fake it by waiting 8 minutes.
+        # This is an overestimate at the time of writing.
+        if self._enterprise_cluster:
             time.sleep(8 * 60)
-        else:
-            subprocess.run(
-                args=['make', 'postflight'], cwd=str(self._path), check=True
-            )
+            return
+
+        subprocess.run(
+            args=['make', 'postflight'], cwd=str(self._path), check=True
+        )
 
     def destroy(self) -> None:
         """
@@ -198,11 +219,17 @@ class Cluster(ContextDecorator):
         agents: int=0,
         public_agents: int=0
     ) -> None:
+
+        tests_config = yaml.load('configuration.yaml')
+
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
             public_agents=public_agents,
             extra_config=extra_config,
+            generate_config_url=tests_config['dcos_generate_config_url'],
+            generate_config_path=tests_config['dcos_generate_config_path'],
+            enterprise_cluster=tests_config['enterprise_cluster'],
         )
         self._backend.postflight()
 
