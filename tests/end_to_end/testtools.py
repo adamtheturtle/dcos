@@ -3,7 +3,7 @@ import time
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple
 
 from docker import Client
 
@@ -71,8 +71,8 @@ class DCOS_Docker:
         agents: int,
         public_agents: int,
         extra_config: Dict,
-        generate_config_url: Union[None, str],
-        generate_config_path: Union[None, str],
+        generate_config_url: Optional[str],
+        generate_config_path: Optional[Path],
         enterprise_cluster: bool,
         dcos_docker_path: Path,
     ) -> None:
@@ -103,7 +103,7 @@ class DCOS_Docker:
 
         if generate_config_path:
             make_containers_args['DCOS_GENERATE_CONFIG_PATH'
-                                 ] = generate_config_path
+                                 ] = str(generate_config_path)
 
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
@@ -185,15 +185,21 @@ class Cluster(ContextDecorator):
         with open('configuration.yaml') as configuration:
             tests_config = yaml.load(configuration)
 
+        generate_config_path = None
+
+        if tests_config['dcos_generate_config_path'] is not None:
+            generate_config_path = Path(
+                tests_config['dcos_generate_config_path'])
+
         self._backend = DCOS_Docker(
             masters=masters,
             agents=agents,
             public_agents=public_agents,
             extra_config=extra_config,
             generate_config_url=tests_config['dcos_generate_config_url'],
-            generate_config_path=tests_config['dcos_generate_config_path'],
-            enterprise_cluster=tests_config['enterprise_cluster'],
-            dcos_docker_path=tests_config['dcos_docker_path'],
+            generate_config_path=generate_config_path,
+            enterprise_cluster=bool(tests_config['enterprise_cluster']),
+            dcos_docker_path=Path(tests_config['dcos_docker_path']),
         )
         self._backend.postflight()
 
