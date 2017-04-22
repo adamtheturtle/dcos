@@ -91,13 +91,9 @@ class DCOS_Docker:
         self._agents = agents
         self._public_agents = public_agents
 
-        self._path = 
-
         # We clone in the directory containing this file as we need write
         # permissions.
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        clone_dir = mkdtemp(dir=file_dir)
-        self._path = Path(clone_dir)
+        self._path = Path(mkdtemp())
 
         porcelain.clone(
             source='https://github.com/dcos/dcos-docker.git',
