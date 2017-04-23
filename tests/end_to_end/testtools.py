@@ -142,7 +142,9 @@ class _DCOS_Docker:
             time.sleep(8 * 60)
             return
 
-        subprocess.check_output(args=['make', 'postflight'], cwd=str(self._path))
+        subprocess.check_output(
+            args=['make', 'postflight'], cwd=str(self._path)
+        )
 
     def destroy(self) -> None:
         """
@@ -207,7 +209,8 @@ class Cluster(ContextDecorator):
 
         if tests_config['dcos_generate_config_path'] is not None:
             generate_config_path = Path(
-                tests_config['dcos_generate_config_path'])
+                tests_config['dcos_generate_config_path']
+            )
 
         self._backend = _DCOS_Docker(
             masters=masters,
