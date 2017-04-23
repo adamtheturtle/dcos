@@ -205,9 +205,15 @@ class Cluster(ContextDecorator):
         public_agents: int=0
     ) -> None:
         """
-        XXX
+        Args:
+            extra_config: This dictionary can contain extra installation
+                configuration variables to add to base configurations.
+            masters: The number of master nodes to create.
+            agents: The number of master nodes to create.
+            public_agents: The number of master nodes to create.
         """
 
+        # See README.md for information on the required configuration.
         with open('configuration.yaml') as configuration:
             tests_config = yaml.load(configuration)
 
