@@ -84,3 +84,9 @@ This also brings in discussion about where the debug output should go.
 This could clone DC/OS Docker.
 This could use somethink like `pkgpanda`.
 This could continue as-is - using a path to an existing clone.
+
+## Style checking
+
+For development help I used mypy and YAPF.
+I committed the configs.
+Where and whether they live should be discussed.

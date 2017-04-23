@@ -25,7 +25,7 @@ class Node:
 
     def run_as_root(self, args: List[str]) -> subprocess.CompletedProcess:
         """
-        Run a command on this ``Node``.
+        Run a command on this ``Node`` as ``root``.
 
         Args:
             args: The command to run on the ``Node``.
