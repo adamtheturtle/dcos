@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from docker import Client
 
 
-class Node:
+class _Node:
     """
     A record of a DC/OS cluster node.
     """
@@ -25,10 +25,10 @@ class Node:
 
     def run_as_root(self, args: List[str]) -> subprocess.CompletedProcess:
         """
-        Run a command on this ``Node`` as ``root``.
+        Run a command on this node as ``root``.
 
         Args:
-            args: The command to run on the ``Node``.
+            args: The command to run on the node.
 
         Returns:
             The representation of the finished process.
@@ -57,7 +57,7 @@ class Node:
             self._ip_address,
         ] + args
 
-        subprocess.check_output(args=ssh_args)
+        return subprocess.check_output(args=ssh_args)
 
 
 class _DCOS_Docker:
@@ -152,17 +152,17 @@ class _DCOS_Docker:
         """
         subprocess.check_output(args=['make', 'clean'], cwd=str(self._path))
 
-    def _nodes(self, container_base_name: str, num_nodes: int) -> Set[Node]:
+    def _nodes(self, container_base_name: str, num_nodes: int) -> Set[_Node]:
         """
         Args:
             container_base_name: The start of the container names.
             num_nodes: The number of nodes.
 
-        Returns: ``Node``s corresponding to containers with names starting
+        Returns: ``_Node``s corresponding to containers with names starting
             with ``container_base_name``.
         """
         client = Client()
-        nodes = set([])  # type: Set[Node]
+        nodes = set([])  # type: Set[_Node]
 
         while len(nodes) < num_nodes:
             container_name = '{container_base_name}{number}'.format(
@@ -171,7 +171,7 @@ class _DCOS_Docker:
             )
             details = client.inspect_container(container=container_name)
             ip_address = details['NetworkSettings']['IPAddress']
-            node = Node(
+            node = _Node(
                 ip_address=ip_address,
                 ssh_key_path=self._path / 'include' / 'ssh' / 'id_rsa',
             )
@@ -180,7 +180,10 @@ class _DCOS_Docker:
         return nodes
 
     @property
-    def masters(self) -> Set[Node]:
+    def masters(self) -> Set[_Node]:
+        """
+        Return all DC/OS master ``_Node``s.
+        """
         return self._nodes(
             container_base_name='dcos-docker-master',
             num_nodes=self._masters,
@@ -201,6 +204,9 @@ class Cluster(ContextDecorator):
         agents: int=0,
         public_agents: int=0
     ) -> None:
+        """
+        XXX
+        """
 
         with open('configuration.yaml') as configuration:
             tests_config = yaml.load(configuration)
@@ -228,7 +234,10 @@ class Cluster(ContextDecorator):
         return self
 
     @property
-    def masters(self) -> Set[Node]:
+    def masters(self) -> Set[_Node]:
+        """
+        Return all DC/OS master ``_Node``s.
+        """
         return self._backend.masters
 
     def __exit__(self, *exc: Tuple[None, None, None]) -> bool:
