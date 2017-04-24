@@ -72,7 +72,6 @@ class _DCOS_Docker:
         extra_config: Dict,
         generate_config_url: Optional[str],
         generate_config_path: Optional[Path],
-        enterprise_cluster: bool,
         dcos_docker_path: Path,
     ) -> None:
         """
@@ -87,14 +86,11 @@ class _DCOS_Docker:
                 variables.
             generate_config_url: The URL to a build artifact to install.
             generate_config_path: The path to a build artifact to install.
-            enterprise_cluster: Whether or not the build artifact is an
-                enterprise build.
             dcos_docker_path: The path to a clone of DC/OS Docker.
         """
         self._masters = masters
         self._agents = agents
         self._public_agents = public_agents
-        self._enterprise_cluster = enterprise_cluster
         self._path = dcos_docker_path
 
         # If there is an existing build artifact, a new one is not downloaded.
@@ -233,7 +229,6 @@ class Cluster(ContextDecorator):
             extra_config=extra_config,
             generate_config_url=tests_config['dcos_generate_config_url'],
             generate_config_path=generate_config_path,
-            enterprise_cluster=bool(tests_config['enterprise_cluster']),
             dcos_docker_path=Path(tests_config['dcos_docker_path']),
         )
         self._backend.postflight()
