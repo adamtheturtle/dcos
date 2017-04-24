@@ -102,34 +102,34 @@ class _DCOS_Docker:
         if existing_artifact_path.exists():
             existing_artifact_path.unlink()
 
-        self._make(options={}, target='clean')
+        self._make(variables={}, target='clean')
 
-        options = {
+        variables = {
             'MASTERS': str(masters),
             'AGENTS': str(agents),
             'PUBLIC_AGENTS': str(public_agents),
         }  # type: Dict[str, str]
 
         if extra_config:
-            options['EXTRA_GENCONF_CONFIG'] = yaml.dump(
+            variables['EXTRA_GENCONF_CONFIG'] = yaml.dump(
                 data=extra_config,
                 default_flow_style=False,
             )
 
         if generate_config_url:
-            options['DCOS_GENERATE_CONFIG_URL'] = generate_config_url
+            variables['DCOS_GENERATE_CONFIG_URL'] = generate_config_url
 
         if generate_config_path:
-            options['DCOS_GENERATE_CONFIG_PATH'] = str(generate_config_path)
+            variables['DCOS_GENERATE_CONFIG_PATH'] = str(generate_config_path)
 
-        self._make(options=options, target='all')
+        self._make(variables=variables, target='all')
 
-    def _make(self, options: Dict[str, str], target: str) -> None:
+    def _make(self, variables: Dict[str, str], target: str) -> None:
         """
         Run `make` in the DC/OS Docker directory.
 
         Args:
-            options: Options to pass to `make`.
+            variables: Options to pass to `make`.
             target: `make` target to run.
 
         Raises:
@@ -137,7 +137,7 @@ class _DCOS_Docker:
         """
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
-            for key, value in options.items()
+            for key, value in variables.items()
         ] + [target]
 
         subprocess.check_output(args=args, cwd=str(self._path))
@@ -146,13 +146,13 @@ class _DCOS_Docker:
         """
         Wait for nodes to be ready to run tests against.
         """
-        self._make(options={}, target='postflight')
+        self._make(variables={}, target='postflight')
 
     def destroy(self) -> None:
         """
         Destroy all nodes in the cluster.
         """
-        self._make(options={}, target='clean')
+        self._make(variables={}, target='clean')
 
     def _nodes(self, container_base_name: str, num_nodes: int) -> Set[_Node]:
         """
