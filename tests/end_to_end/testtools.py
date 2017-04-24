@@ -129,7 +129,7 @@ class _DCOS_Docker:
         Run `make` in the DC/OS Docker directory.
 
         Args:
-            variables: Options to pass to `make`.
+            variables: Variables to pass to `make`.
             target: `make` target to run.
 
         Raises:
