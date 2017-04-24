@@ -103,3 +103,9 @@ This could continue as-is - using a path to an existing clone.
 For development help I used mypy and YAPF.
 I committed the configs.
 Where and whether they live should be discussed.
+
+## Parallelisation
+
+These tests are very slow and they should be very parallelisable.
+However, that may require some changes as currently DC/OS Docker names containers in a deterministic manner.
+That is, you can't spin up two DC/OS Docker clusters simultaneously right now.
