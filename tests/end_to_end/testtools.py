@@ -57,7 +57,7 @@ class _Node:
             self._ip_address,
         ] + args
 
-        return subprocess.check_output(args=ssh_args)
+        return subprocess.run(args=ssh_args, check=True)
 
 
 class _DCOS_Docker:
