@@ -1,5 +1,4 @@
 import subprocess
-import time
 import yaml
 from contextlib import ContextDecorator
 from pathlib import Path
@@ -135,13 +134,6 @@ class _DCOS_Docker:
         """
         Wait for nodes to be ready to run tests against.
         """
-        # `make postflight` does not work for enterprise clusters.
-        # We therefore fake it by waiting 8 minutes.
-        # This is an overestimate at the time of writing.
-        if self._enterprise_cluster:
-            time.sleep(8 * 60)
-            return
-
         subprocess.check_output(
             args=['make', 'postflight'], cwd=str(self._path)
         )
