@@ -202,7 +202,7 @@ class Cluster(ContextDecorator):
         extra_config: Dict,
         masters: int=1,
         agents: int=0,
-        public_agents: int=0
+        public_agents: int=0,
     ) -> None:
         """
         Args:
@@ -237,6 +237,9 @@ class Cluster(ContextDecorator):
         self._backend.postflight()
 
     def __enter__(self) -> 'Cluster':
+        """
+        A context manager receives this ``Cluster`` instance.
+        """
         return self
 
     @property
