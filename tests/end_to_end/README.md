@@ -24,6 +24,11 @@ chmod +x vbox-network.sh
 cd ..
 curl -O https://raw.githubusercontent.com/dcos/dcos-docker/master/Vagrantfile
 vagrant/resize-disk.sh 102400
+# Update the kernel and re-provision to work around
+# https://github.com/moby/moby/issues/5618
+vagrant ssh -c 'sudo yum update -y kernel'
+vagrant reload
+vagrant provision
 vagrant ssh
 ```
 
