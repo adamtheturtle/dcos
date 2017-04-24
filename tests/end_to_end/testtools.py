@@ -97,52 +97,62 @@ class _DCOS_Docker:
         self._enterprise_cluster = enterprise_cluster
         self._path = dcos_docker_path
 
-        make_containers_args = {
+        # If there is an existing build artifact, a new one is not downloaded.
+        existing_artifact_path = dcos_docker_path / 'dcos_generate_config.sh'
+        if existing_artifact_path.exists():
+            existing_artifact_path.unlink()
+
+        self._make(options={}, target='clean')
+
+        options = {
             'MASTERS': str(masters),
             'AGENTS': str(agents),
             'PUBLIC_AGENTS': str(public_agents),
         }  # type: Dict[str, str]
 
         if extra_config:
-            make_containers_args['EXTRA_GENCONF_CONFIG'] = yaml.dump(
+            options['EXTRA_GENCONF_CONFIG'] = yaml.dump(
                 data=extra_config,
                 default_flow_style=False,
             )
 
         if generate_config_url:
-            make_containers_args['DCOS_GENERATE_CONFIG_URL'
-                                 ] = generate_config_url
+            options['DCOS_GENERATE_CONFIG_URL'] = generate_config_url
 
         if generate_config_path:
-            make_containers_args['DCOS_GENERATE_CONFIG_PATH'
-                                 ] = str(generate_config_path)
+            options['DCOS_GENERATE_CONFIG_PATH'] = str(generate_config_path)
 
-        # If there is an existing build artifact, a new one is not downloaded.
-        existing_artifact_path = dcos_docker_path / 'dcos_generate_config.sh'
-        if existing_artifact_path.exists():
-            existing_artifact_path.unlink()
+        self._make(options=options, target='all')
 
-        subprocess.check_output(args=['make', 'clean'], cwd=str(self._path))
+    def _make(self, options: Dict[str, str], target: str) -> None:
+        """
+        Run `make` in the DC/OS Docker directory.
 
+        Args:
+            options: Options to pass to `make`.
+            target: `make` target to run.
+
+        Raises:
+            CalledProcessError: The process exited with a non-zero code.
+        """
         args = ['make'] + [
             '{key}={value}'.format(key=key, value=value)
-            for key, value in make_containers_args.items()
-        ]
+            for key, value in options.items()
+        ] + [target]
+
         subprocess.check_output(args=args, cwd=str(self._path))
 
     def postflight(self) -> None:
         """
         Wait for nodes to be ready to run tests against.
         """
-        subprocess.check_output(
-            args=['make', 'postflight'], cwd=str(self._path)
-        )
+        self._make(options={}, target='postflight')
 
     def destroy(self) -> None:
         """
         Destroy all nodes in the cluster.
         """
-        subprocess.check_output(args=['make', 'clean'], cwd=str(self._path))
+        self._make(options={}, target='clean')
 
     def _nodes(self, container_base_name: str, num_nodes: int) -> Set[_Node]:
         """
