@@ -4,7 +4,7 @@ End to end tests are tests which require a DC/OS cluster to run against.
 Each test spins up at least one cluster, and has the choice of configuring this cluster as appropriate.
 For example, a test may require a cluster with a certain number of agents, or certain configuration options.
 
-The tests should be not be tied to the backendi infrastructure.
+The tests should be not be tied to the backend infrastructure.
 That is, they should pass against clusters on all supported infrastructures.
 The current implementation supports only a [DC/OS Docker](https://github.com/dcos/dcos-docker) backend.
 
