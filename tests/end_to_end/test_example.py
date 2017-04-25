@@ -5,7 +5,7 @@ import pytest
 from .testtools import Cluster
 
 
-class TestExample:
+class TestHarness:
     """
     Example tests which demonstrate the features of the test harness.
     """

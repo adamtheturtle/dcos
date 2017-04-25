@@ -1,12 +1,17 @@
-# End to End tests
+# DC/OS End to End tests
 
 End to end tests are tests which require a DC/OS cluster to run against.
 Each test spins up at least one cluster, and has the choice of configuring this cluster as appropriate.
 For example, a test may require a cluster with a certain number of agents, or certain configuration options.
 
-The tests are agnostic to the backend.
+The tests should be not be tied to the backendi infrastructure.
 That is, they should pass against clusters on all supported infrastructures.
 The current implementation supports only a [DC/OS Docker](https://github.com/dcos/dcos-docker) backend.
+
+Usually tests are kept with the source code.
+However, this is a proof of concept.
+We plan to iterate on this repository and manually run tests.
+With that experience, we will choose where to put the test suite and whether it should be run on CI.
 
 ## Running tests
 
@@ -66,46 +71,9 @@ until <https://github.com/dcos/dcos-docker/pull/34> is merged:
 git clone -b dcos-enterprise-postflight-DCOS-15322 https://github.com/adamtheturtle/dcos-docker.git
 ```
 
-# Discussion and future
-
-## Selectable backends
-
-I can imagine that in the future this tool will need to be run on different backends.
-Therefore I have tried to abstract `Cluster` from DC/OS Docker.
-Discuss with Daniel Baker the overlap between this tool and future plans.
-
-## Options passing
-
-This POC uses a `configuration.yaml` file.
-Other options include command line options and environment variables.
-I can imagine this getting very unweildy.
-Similar high level test tools which I have worked on have grown to allow a very large number of options and I believe that this could be the case here.
-
-## Where these tests live
-
-These tests are currently in their own directory with their own requirements and such.
-
-This could be moved to DCOS-E, or somewhere else in DCOS-OSS.
-
-We should when these tests are run.
-E.g. on every build on CI, nightly, etc.
-
-This also brings in discussion about where the debug output should go.
-
-## How these tests get DC/OS Docker
-
-This could clone DC/OS Docker.
-This could use somethink like `pkgpanda`.
-This could continue as-is - using a path to an existing clone.
-
-## Style checking
-
-For development help I used mypy and YAPF.
-I committed the configs.
-Where and whether they live should be discussed.
-
 ## Parallelisation
 
-These tests are very slow and they should be very parallelisable.
+These tests are very slow and they should be very parallelisable,
+perhaps with [pytest-xdist](https://github.com/pytest-dev/pytest-xdist).
 However, that may require some changes as currently DC/OS Docker names containers in a deterministic manner.
 That is, you can't spin up two DC/OS Docker clusters simultaneously right now.
