@@ -39,7 +39,8 @@ class TestExample:
 
     def test_file_does_not_exist(self, path: str) -> None:
         """
-        This example demonstrates that a non-0 return code from a command run on a node raises a ``CalledProcessError``.
+        This example demonstrates that a non-0 return code from a command run
+        on a node raises a ``CalledProcessError``.
         """
         with Cluster(extra_config={}) as cluster:
             (master, ) = cluster.masters
