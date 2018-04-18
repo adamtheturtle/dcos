@@ -270,7 +270,7 @@ def write_json(filename, data):
 
 def write_string(filename, data):
     with open(filename, "w+") as f:
-        return f.write(data)
+        f.write(data)
 
 
 def load_string(filename):
