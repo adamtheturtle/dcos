@@ -2,6 +2,8 @@
 source /opt/mesosphere/environment.export
 export LIB_INSTALL_DIR="$PKG_PATH/lib/python3.6/site-packages"
 mkdir -p "$LIB_INSTALL_DIR"
+# cryptography must see the pinned cffi installed earlier in this package.
+export PYTHONPATH="$LIB_INSTALL_DIR:$PYTHONPATH"
 
 export PKG_CONFIG_PATH=/opt/mesosphere/lib/pkgconfig
 
