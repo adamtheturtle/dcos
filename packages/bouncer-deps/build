@@ -9,6 +9,7 @@ set -exu
 source /opt/mesosphere/environment.export
 export LIB_INSTALL_DIR="$PKG_PATH/lib/python3.6/site-packages"
 mkdir -p "$LIB_INSTALL_DIR"
+export PYTHONPATH="$LIB_INSTALL_DIR:$PYTHONPATH"
 
 echo "pip version: $(pip --version)"
 echo "Install packages from wheel files."
@@ -33,5 +34,5 @@ for package in \
     psycopg2 \
     pyasn1
 do
-  pip install -v --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/$package
+  pip install -v --no-build-isolation --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/$package
 done

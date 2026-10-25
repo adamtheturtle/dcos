@@ -20,7 +20,7 @@ costs. Completed archives are copied back to `packages/cache`; caches survive fa
 builds. `DCOS_ARM64_VOLUME` selects a volume explicitly. Concurrent builds in the
 same volume are rejected. `DCOS_BUILD_JOBS` defaults to 2; use 1 for Mesos on small
 machines. Allow substantial disk space for a full source build; the wrapper refuses
-to start with less than 10 GiB free. Use a separate checkout/cache from AMD64.
+to start with less than 10 GiB free for packages or 50 GiB for the full tree. Use a separate checkout/cache from AMD64.
 
 Builder images are cached by their input file contents. Set `DCOS_REBUILD_BUILDERS=1`
 to rebuild them. Package identities include the selected native source checksums,

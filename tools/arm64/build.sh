@@ -17,8 +17,10 @@ else
     done
 fi
 free_kib=$(df -Pk "$repo_dir" | awk 'NR == 2 {print $4}')
-if [ "$free_kib" -lt 10485760 ]; then
-    echo 'At least 10 GiB of free host disk space is required before building.' >&2
+minimum_gib=10
+if [ "$1" = tree ] && [ "${2:-default}" != installer ]; then minimum_gib=50; fi
+if [ "$free_kib" -lt "$((minimum_gib * 1024 * 1024))" ]; then
+    echo "At least $minimum_gib GiB of free host disk space is required before building." >&2
     exit 1
 fi
 case "$(docker info --format '{{.Architecture}}')" in
