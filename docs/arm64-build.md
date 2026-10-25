@@ -10,7 +10,7 @@ Use an ARM64 Docker engine, including Docker Desktop on Apple Silicon:
 ```sh
 ./tools/arm64/build.sh openssl libseccomp python java etcd strace boost-libs dcos-ui-update-service
 ./tools/arm64/build.sh mesos marathon metronome adminrouter cockroach
-./tools/arm64/build.sh tree
+./tools/arm64/build-installer.sh
 ```
 
 The wrapper builds native compiler and coordinator images, then uses pkgpanda's
@@ -37,7 +37,10 @@ archives return 403. Sources with unchanged checksums are restored from upstream
 OpenSSL, Boost, AdoptOpenJDK, Apache ZooKeeper and strace downloads. Java, etcd and
 Calico select verified ARM64 release inputs. CockroachDB is compiled from its pinned
 19.1.11 source using a portable RocksDB configuration and native Node/Yarn tools.
-The UI update service and Calico libnetwork plugin are compiled from pinned source.
+The UI update service, Calico libnetwork plugin and Telegraf dependency manager
+are compiled from pinned source. Calico uses the static ARM64 binaries from its
+digest-pinned release image in a GNU build environment; its ARM64 runtime image
+uses Alpine rather than the CentOS image used on AMD64.
 
 The official installer at
 <https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh> retains
@@ -62,6 +65,8 @@ omitted for this builder.
 python3 -m unittest discover -s tools/arm64 -v
 ./tools/arm64/smoke_openssl.sh
 ./tools/arm64/smoke_python.sh
+./tools/arm64/smoke_cockroach.sh
+./tools/arm64/smoke_adminrouter.sh
 ./tools/arm64/smoke_services.sh  # after Mesos and its dependencies are built
 python3 tools/arm64/check_elf.py packages/cache/packages/mesos/mesos--*.tar.xz
 ```
@@ -70,13 +75,20 @@ Every completed package is checked for 64-bit AArch64 ELF headers. This detects
 accidental AMD64 prebuilts, but does not inspect native objects nested in JARs or
 prove cluster operation. Python smoke tests cover TLS, XZ, ctypes, Cython and
 libseccomp. Service smoke tests execute Java, etcd, strace and Mesos master/agent.
+The bundled Mesos jemalloc 5.0.1 needs the upstream ARM64 pointer fix from
+<https://github.com/jemalloc/jemalloc/pull/1035>; without it, high ARM64 virtual
+addresses are incorrectly sign extended and Mesos crashes before main. The
+backport is applied during the bundled allocator build.
+
 The pinned etcd release requires `ETCD_UNSUPPORTED_ARCH=arm64`, supplied in its
 ARM64 package environment.
 
 Locally verified: OpenSSL, libseccomp, XZ, Python, Java, etcd, strace, Boost, the UI
-update service, and Mesos compile/package for ARM64. CockroachDB 19.1.11 source
-compiles and an isolated in-memory database answers SQL. Scheduler and installer
-assembly verification is in progress. A full installer and cluster smoke test are
+update service, and Mesos compile/package for ARM64. CockroachDB 19.1.11 packages
+and an isolated in-memory database answers SQL. Admin Router serves a LuaJIT HTTP
+request. Marathon loads the ARM64 Mesos JNI library and prints its help. The
+installer bootstrap executes its CLI and passes a cryptography/CFFI SHA-256
+check. The clean Mesos rebuild and full distribution assembly are in progress. A full installer and cluster smoke test are
 still required before claiming complete DC/OS ARM64 support.
 
 GitHub Actions uses `ubuntu-24.04-arm`, checks the source-selection and archive
