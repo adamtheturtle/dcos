@@ -2,8 +2,9 @@
 
 This fork starts at DC/OS master `79b9a39b4e639dc2c9435a869918399b50bfaf24`.
 The complete native Linux ARM64 installer builds from this branch. Its CLI and
-offline configuration generation have passed smoke checks. A full DC/OS cluster
-deployment has not been validated. Cloud provisioning templates retain their
+offline configuration generation have passed smoke checks. A native two-node
+DC/OS OSS deployment has also passed Docker Desktop checks using the POSIX
+functional-test mode described below. Cloud provisioning templates retain their
 upstream image choices; the tested installer targets on-premises Linux ARM64.
 
 ## Build
@@ -106,8 +107,36 @@ The self-contained `packages/cache/dcos_generate_config.sh` loads its ARM64 Dock
 image and executes its CLI successfully. An isolated `--genconf` invocation,
 with Docker networking disabled and a temporary static-master configuration,
 generated the node installer, configuration packages and cluster package list.
-These checks do not constitute a deployed DC/OS cluster test.
+The Docker deployment checks below exercise a configured cluster.
 
 GitHub Actions uses `ubuntu-24.04-arm`, checks the source-selection and archive
 fetcher/local-source tests, builds native core/service inputs, executes OpenSSL/Python smoke
 tests, and uploads the resulting package archives. It does not validate a cluster.
+
+
+## Docker test deployment
+
+On 2026-10-25, an installer built from source
+`182944cdce2fb66e012969a60b451031530bf472` deployed a fresh master and private
+agent with [the dcos-e2e Docker fork](https://github.com/adamtheturtle/dcos-e2e).
+Docker Desktop 29.9.2 used a native ARM64 engine and cgroups v2; nodes ran CentOS 8
+and nested Docker 27.5.1. Both nodes passed DC/OS poststart checks, had no failed
+systemd units, and ran native ARM64 nested Docker containers. Marathon launched
+a healthy HTTP task. The dashboard, Marathon API and task endpoint returned HTTP
+200 through the published master port. OAuth was explicitly disabled for this
+local test cluster.
+
+This mode uses the POSIX Mesos launcher and usage isolators. Mesos cgroup
+resource enforcement, Docker image workloads, CSI volumes and CNI task isolation
+are disabled. The nested Docker daemon remains available for node commands.
+See the dcos-e2e README for setup and the recorded validation results.
+
+Deployment testing found two startup defects: newer kernels report duplicate
+addresses with different text, and some AdoptOpenJDK ARM64 runtime data files
+were readable only by root. The networking retry script handles both kernel
+messages, and the Java package grants read access to the currency and colour
+profile data needed by service users. The service smoke check exercises those
+Java files as an unprivileged user.
+
+The tested installer is 940096073 bytes, with SHA-256
+`6043cb631f9b42c3686104c874a5dd6b0d76d42e665cc493d826e797f70ad8be`.
