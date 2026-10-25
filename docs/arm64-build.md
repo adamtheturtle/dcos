@@ -67,6 +67,7 @@ python3 -m unittest discover -s tools/arm64 -v
 ./tools/arm64/smoke_python.sh
 ./tools/arm64/smoke_cockroach.sh
 ./tools/arm64/smoke_adminrouter.sh
+./tools/arm64/smoke_schedulers.sh
 ./tools/arm64/smoke_services.sh  # after Mesos and its dependencies are built
 python3 tools/arm64/check_elf.py packages/cache/packages/mesos/mesos--*.tar.xz
 ```
@@ -88,7 +89,9 @@ update service, and Mesos compile/package for ARM64. CockroachDB 19.1.11 package
 and an isolated in-memory database answers SQL. Admin Router serves a LuaJIT HTTP
 request. Marathon loads the ARM64 Mesos JNI library and prints its help. The
 installer bootstrap executes its CLI and passes a cryptography/CFFI SHA-256
-check. The clean Mesos rebuild and full distribution assembly are in progress. A full installer and cluster smoke test are
+check. Metronome starts against a local ZooKeeper and serves HTTP `pong`.
+DC/OS networking, Fluent Bit, Calico and Erlang compile/package for ARM64.
+The clean Mesos rebuild and full distribution assembly are in progress. A full installer and cluster smoke test are
 still required before claiming complete DC/OS ARM64 support.
 
 GitHub Actions uses `ubuntu-24.04-arm`, checks the source-selection and archive
