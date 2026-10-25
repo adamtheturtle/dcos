@@ -3,6 +3,6 @@
       "kind": "git",
       "git": "https://github.com/containernetworking/plugins.git",
       "ref" : "9f96827c7cabb03f21d86326000c00f61e181f6a",
-      "ref_origin": "master"
+      "ref_origin": "main"
     }
 }
