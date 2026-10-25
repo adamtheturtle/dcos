@@ -4,6 +4,11 @@ set -o errexit -o nounset -o pipefail
 mkdir -p "$PKG_PATH/usr"
 cp -rp "/pkg/src/java" "$PKG_PATH/usr"
 
+# Some AdoptOpenJDK ARM64 runtime data files are owner-readable only.
+# DC/OS services run Java as unprivileged users.
+chmod a+r "$PKG_PATH/usr/java/jre/lib/currency.data" \
+    "$PKG_PATH/usr/java/jre/lib/cmm/"*.pf
+
 #edit JVM DNS caching timeout
 echo "" >> $PKG_PATH/usr/java/jre/lib/security/java.security
 echo "#Updated DNS cache ttl" >> $PKG_PATH/usr/java/jre/lib/security/java.security
