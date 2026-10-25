@@ -3,6 +3,7 @@
 set -euo pipefail
 repo_dir=$(cd "$(dirname "$0")/../.." && pwd -P)
 smoke_dir=$(mktemp -d)
+chmod 755 "$smoke_dir"
 trap 'python3 -c "import shutil, sys; shutil.rmtree(sys.argv[1])" "$smoke_dir"' EXIT
 library_path=''
 mkdir -p "$smoke_dir/active"
@@ -19,6 +20,15 @@ docker run --rm --platform linux/arm64 -v "$smoke_dir:/opt/mesosphere:ro" \
     dcos/dcos-builder:dcos-builder_dockerdir-latest -c '
         set -e
         /opt/mesosphere/active/java/usr/java/bin/java -version
+        printf "%s\n" \
+            "public class JavaRuntimeCheck {" \
+            "  public static void main(String[] args) {" \
+            "    System.out.println(java.util.Currency.getInstance(\"USD\"));" \
+            "    java.awt.color.ICC_Profile.getInstance(java.awt.color.ColorSpace.CS_sRGB);" \
+            "  }" \
+            "}" > /tmp/JavaRuntimeCheck.java
+        /opt/mesosphere/active/java/usr/java/bin/javac /tmp/JavaRuntimeCheck.java
+        su nobody -s /bin/sh -c "/opt/mesosphere/active/java/usr/java/bin/java -cp /tmp JavaRuntimeCheck"
         /opt/mesosphere/active/etcd/bin/etcd --version
         /opt/mesosphere/active/strace/bin/strace -V
         /opt/mesosphere/active/mesos/bin/mesos-master --version
