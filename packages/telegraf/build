@@ -21,7 +21,7 @@ project_src_path="$GOPATH/src/$project"
 
 # Add the project to $GOPATH.
 mkdir -p $(dirname $project_src_path)
-ln -s /pkg/src/$PKG_NAME $project_src_path
+mv /pkg/src/$PKG_NAME "$project_src_path"
 
 # Build telegraf and add it to the package.
 mkdir -p $PKG_PATH/bin/
