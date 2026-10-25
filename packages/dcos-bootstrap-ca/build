@@ -7,7 +7,10 @@ cd /pkg/src/dcos-bootstrap-ca
 # Keep the pinned module graph; installing the latest linter upgrades dependencies
 # beyond the release's Go compiler and is unrelated to producing the binary.
 export GO111MODULE=on GOMAXPROCS="$NUM_CORES" CGO_ENABLED=0
-go test -mod=readonly ./...
+cp go.mod /tmp/bootstrap-ca.go.mod
+go test -mod=mod ./...
+# Go 1.15 fills missing historical go.sum entries; keep all dependency versions.
+cmp go.mod /tmp/bootstrap-ca.go.mod
 go build -mod=readonly -o bin/dcos-bootstrap-ca-linux .
 
 mkdir -p $PKG_PATH/bin
