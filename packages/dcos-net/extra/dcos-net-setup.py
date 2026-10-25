@@ -50,7 +50,8 @@ def main():
     return_code = 0
     if sys.argv[1:4] in [['ip', 'link', 'add'], ['ip', 'addr', 'add'], ['ip', '-6', 'addr']]:
         result = run(sys.argv[1:], stderr=subprocess.PIPE)
-        if result.stderr.strip().endswith(b'File exists'):
+        if result.returncode == 2 and result.stderr.strip().lower().endswith(
+                (b'file exists', b'address already assigned.')):
             result.returncode = 0
         return_code = result.returncode
     elif sys.argv[1] == 'iptables':
