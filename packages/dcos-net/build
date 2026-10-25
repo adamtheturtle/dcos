@@ -9,6 +9,9 @@ export CPPFLAGS=${CFLAGS}
 
 
 pushd /pkg/src/dcos-net
+# This OTP-22-compatible tool understands the current Hex registry.
+cp /pkg/src/rebar3/rebar3 ./rebar3
+chmod +x ./rebar3
 ./rebar3 update
 ./rebar3 as prod release
 popd

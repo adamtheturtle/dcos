@@ -1,11 +1,21 @@
 {
-  "requires": ["openssl", "ncurses", "erlang", "libsodium"],
+  "requires": [
+    "openssl",
+    "ncurses",
+    "erlang",
+    "libsodium"
+  ],
   "sources": {
     "dcos-net": {
       "kind": "git",
       "git": "https://github.com/dcos/dcos-net.git",
       "ref": "d35033b81d33cdd80614a6c567a878164d42a275",
       "ref_origin": "master"
+    },
+    "rebar3": {
+      "kind": "url",
+      "url": "https://github.com/erlang/rebar3/releases/download/3.16.1/rebar3",
+      "sha1": "6f7832e38bd5d8826c10c055aa2ddf73f3ae9733"
     }
   },
   "sysctl": {
