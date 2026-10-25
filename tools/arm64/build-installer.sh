@@ -9,6 +9,9 @@ export DCOS_ARM64_VOLUME=${DCOS_ARM64_VOLUME:-dcos-arm64-$checkout_key}
 ./tools/arm64/build.sh tree installer
 native_root=$(docker volume inspect "$DCOS_ARM64_VOLUME" --format '{{.Mountpoint}}')
 bootstrap_root="$native_root/diagnostics/installer-bootstrap"
+inventory=$(mktemp)
+trap 'python3 -c "import os,sys; os.unlink(sys.argv[1])" "$inventory"' EXIT
+python3 tools/arm64/workspace.py artifact-inventory "$repo_dir" > "$inventory"
 docker run --rm -v "$DCOS_ARM64_VOLUME:$native_root" \
     -e "NATIVE_ROOT=$native_root" -e "BOOTSTRAP_ROOT=$bootstrap_root" \
     --entrypoint bash dcos/arm64-coordinator:local -c '
@@ -26,8 +29,9 @@ docker run --rm --platform linux/arm64 \
         source /opt/mesosphere/environment.export
         exec /opt/mesosphere/bin/python3 tools/arm64/assemble_installer.py
     '
-docker run --rm -v "$DCOS_ARM64_VOLUME:$native_root" \
+docker run --rm -v "$DCOS_ARM64_VOLUME:$native_root" -v "$inventory:/dcos-existing-artifacts.json:ro" \
     --entrypoint python3 dcos/arm64-coordinator:local \
-    "$native_root/tools/arm64/workspace.py" pack-artifacts "$native_root" | \
+    "$native_root/tools/arm64/workspace.py" pack-artifacts "$native_root" /dcos-existing-artifacts.json | \
     python3 tools/arm64/workspace.py unpack-artifacts "$repo_dir"
+./tools/arm64/smoke_installer.sh
 echo "Installer: $repo_dir/packages/cache/dcos_generate_config.sh"
