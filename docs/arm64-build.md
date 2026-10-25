@@ -1,107 +1,84 @@
-# Native ARM64 build work
+# Native Linux ARM64 build
 
-This work targets Linux ARM64 (`aarch64`), using the upstream `master` branch at
-`79b9a39b4e639dc2c9435a869918399b50bfaf24` as its starting point.
+This fork starts at DC/OS master `79b9a39b4e639dc2c9435a869918399b50bfaf24`.
+The full distribution is being brought up; an ARM64 cluster has not been validated.
 
-The package build path is being brought up on an ARM64 Docker engine. A complete
-DC/OS distribution is not yet available from this branch.
+## Build
 
-## Package builds
-
-From the repository root, run:
+Use an ARM64 Docker engine, including Docker Desktop on Apple Silicon:
 
 ```sh
-./tools/arm64/build.sh openssl
+./tools/arm64/build.sh openssl libseccomp python java etcd strace boost-libs dcos-ui-update-service
+./tools/arm64/build.sh mesos marathon metronome adminrouter cockroach
+./tools/arm64/build.sh tree
 ```
 
-The script builds the native compiler image and a Linux/Python 3.6 coordinator,
-then invokes the existing `pkgpanda` recursive package builder. It works with an
-ARM64 Linux Docker engine, including Docker Desktop on Apple Silicon. The
-wrapper requires at least 10 GiB of free host disk space before it starts.
-The repository is mounted at the same absolute path in the coordinator and sibling
-build containers. Build images are kept locally.
+The wrapper builds native compiler and coordinator images, then uses pkgpanda's
+existing recursive package builder. On macOS it copies sources into a dedicated
+Linux Docker volume to support hard links and avoid shared-filesystem compilation
+costs. Completed archives are copied back to `packages/cache`; caches survive failed
+builds. `DCOS_ARM64_VOLUME` selects a volume explicitly. Concurrent builds in the
+same volume are rejected. `DCOS_BUILD_JOBS` defaults to 2; use 1 for Mesos on small
+machines. Allow substantial disk space for a full source build; the wrapper refuses
+to start with less than 10 GiB free. Use a separate checkout/cache from AMD64.
 
-Use a dedicated checkout and package cache for ARM64 builds. The standard
-`packages/cache` layout is retained. Packages containing native executables or
-shared libraries are checked for AArch64 ELF headers after a successful build.
-This check does not validate libraries embedded inside JARs or archives within
-a package, or prove that a DC/OS cluster can run.
+Builder images are cached by their input file contents. Set `DCOS_REBUILD_BUILDERS=1`
+to rebuild them. Package identities include the selected native source checksums,
+compiler image, build recipe and dependency identities.
 
-To inspect existing package archives:
+`architecture_overrides` in buildinfo.json selects complete top-level fields using
+`arm64` or `amd64`. The resulting ordinary buildinfo is used by pkgpanda; architecture
+metadata is removed before hashing. Sources and single_source are mutually exclusive.
+
+## Restoring retired downloads
+
+The Mesosphere download host no longer resolves, and the original scheduler
+archives return 403. Sources with unchanged checksums are restored from upstream
+OpenSSL, Boost, AdoptOpenJDK, Apache ZooKeeper and strace downloads. Java, etcd and
+Calico select verified ARM64 release inputs. CockroachDB is compiled from its pinned
+19.1.11 source using a portable RocksDB configuration and native Node/Yarn tools.
+The UI update service and Calico libnetwork plugin are compiled from pinned source.
+
+The official installer at
+<https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh> retains
+packages built from the exact starting commit. The `installer_package` source
+fetcher checks its SHA-1, reads its nested tar archives without executing the
+installer or loading its AMD64 image, and verifies the requested package archive's
+checksum. Marathon, Metronome and Exhibitor recover their original Java assets;
+service files and dependency metadata are regenerated. Marathon and Metronome's
+archived buildinfo records exactly the source checksums pinned by this repository.
+The installer is shared in a download cache. If the moving upstream URL changes,
+the pinned checksum intentionally fails; an archived copy with that checksum is
+needed. No native AMD64 executables are reused.
+
+Admin Router copies the original checksum-verified, uncompiled OpenResty and VTS
+source bundles from a digest-pinned legacy builder image. The final build image
+uses native ARM64 compilers and libraries. The x86-only LuaJIT compiler flag is
+omitted for this builder.
+
+## Verification
 
 ```sh
-python3 tools/arm64/check_elf.py packages/cache/packages/openssl/openssl--*.tar.xz
 python3 -m unittest discover -s tools/arm64 -v
+./tools/arm64/smoke_openssl.sh
+./tools/arm64/smoke_python.sh
+./tools/arm64/smoke_services.sh  # after Mesos and its dependencies are built
+python3 tools/arm64/check_elf.py packages/cache/packages/mesos/mesos--*.tar.xz
 ```
 
-Packages that use a separate Docker build image still require that image to be
-available for ARM64. The wrapper builds the common compiler image only.
+Every completed package is checked for 64-bit AArch64 ELF headers. This detects
+accidental AMD64 prebuilts, but does not inspect native objects nested in JARs or
+prove cluster operation. Python smoke tests cover TLS, XZ, ctypes, Cython and
+libseccomp. Service smoke tests execute Java, etcd, strace and Mesos master/agent.
+The pinned etcd release requires `ETCD_UNSUPPORTED_ARCH=arm64`, supplied in its
+ARM64 package environment.
 
-## Changes to the compiler and package recipes
+Locally verified: OpenSSL, libseccomp, XZ, Python, Java, etcd, strace, Boost, the UI
+update service, and Mesos compile/package for ARM64. CockroachDB 19.1.11 source
+compiles and an isolated in-memory database answers SQL. Scheduler and installer
+assembly verification is in progress. A full installer and cluster smoke test are
+still required before claiming complete DC/OS ARM64 support.
 
-* Use a multiarch Ubuntu image for package cleanup.
-* Keep Python 2 tooling and AWS CLI on compatible versions.
-* Use userspace Linux headers instead of an unavailable pinned kernel-header
-  package.
-* Build checksum-verified CMake 3.17.0 source on ARM64; retain the existing CMake
-  installer on AMD64.
-* Select the Go 1.15 archive and checksum for the native architecture.
-* Select OpenSSL's native configure target and restore its upstream source URL,
-  retaining the original DC/OS source checksum.
-* Install the pinned pip source without fetching a modern build backend.
-* Resolve native system library paths for Mesos, Admin Router, and conntrack.
-* Select the native Glide archive for the DC/OS CNI build.
-
-## Remaining distribution blockers
-
-A source audit on 2026-10-25 found:
-
-| Input | Result |
-| --- | --- |
-| `downloads.mesosphere.com` | DNS lookup fails; affects Boost, Java, ZooKeeper, strace, the UI update service, and Admin Router's OpenResty mirror. |
-| Pinned Marathon archive | GET returns HTTP 403. |
-| Pinned Metronome archive | GET returns HTTP 403. |
-| CockroachDB 19.1.11 ARM64 archive | HTTP 404 at the corresponding ARM64 download URL. The existing recipe downloads AMD64. |
-
-The distribution also has architecture-specific Java, etcd, Calico and
-CockroachDB inputs. Calico's wrapper forces `GOARCH=amd64`; Telegraf downloads an
-AMD64 `dep` binary whose release has no corresponding ARM64 asset at that URL.
-These require verified ARM64 replacements or source builds. The Admin Router
-build image also needs ARM64 work beyond the package's library-copy path.
-
-The pinned scheduler source commits are still available:
-[Marathon](https://github.com/mesosphere/marathon/commit/9ee9f3cebb73b1885592a9d634279720bad823cf)
-and [Metronome](https://github.com/dcos/metronome/commit/1bcc08cc88cccf4fa4923f64fe008eff0c16837f).
-Building replacement distributions from those commits would require restoring
-their separate Scala/sbt build environments and validating the resulting JARs.
-Those source builds are not implemented by this branch.
-
-Restoring the common compiler image and native core packages does not resolve
-these distribution inputs. A full installer build and a cluster smoke test
-remain necessary before this branch can claim DC/OS ARM64 support.
-
-## CI
-
-The `Native ARM64 package` GitHub Actions workflow runs on
-`ubuntu-24.04-arm`. It builds OpenSSL, libseccomp, Python and the XZ dependency
-with the native compiler image, checks their ELF headers, and runs packaged
-OpenSSL and Python binaries. The smoke tests check a SHA-256 test vector,
-TLS linkage, XZ compression, the ctypes calling convention, Cython extension
-import and libseccomp's native architecture identifier.
-Successful runs upload the package archives. This workflow validates the core
-package build path, not the complete distribution.
-
-## Local verification
-
-On 2026-10-25, the native compiler image and four package archives built locally:
-
-| Package | AArch64 ELF files checked |
-| --- | ---: |
-| OpenSSL 1.1.1g | 6 |
-| libseccomp 2.3.3 | 2 |
-| XZ/liblzma 5.2.4 | 5 |
-| Python 3.6.8, including Cython 0.29.1 | 71 |
-
-The packaged OpenSSL and Python smoke tests passed. ShellCheck, actionlint,
-architecture-check unit tests and `git diff --check` passed. Hosted CI status is
-reported separately by the fork's Actions workflow.
+GitHub Actions uses `ubuntu-24.04-arm`, checks the source-selection and archive
+fetcher tests, builds native core/service inputs, executes OpenSSL/Python smoke
+tests, and uploads the resulting package archives. It does not validate a cluster.

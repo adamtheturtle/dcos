@@ -1,9 +1,23 @@
 {
-  "single_source" : {
-      "kind": "url_extract",
-      "url": "https://binaries.cockroachdb.com/cockroach-v19.1.11.linux-amd64.tgz",
-      "sha1": "76abd2981ebb3cf36ec7566877a28899388ab972"
+  "single_source": {
+    "kind": "url_extract",
+    "url": "https://binaries.cockroachdb.com/cockroach-v19.1.11.linux-amd64.tgz",
+    "sha1": "76abd2981ebb3cf36ec7566877a28899388ab972"
   },
   "username": "dcos_cockroach",
-  "state_directory": true
+  "state_directory": true,
+  "architecture_overrides": {
+    "arm64": {
+      "docker": "dcos/cockroach-builder:local",
+      "single_source": {
+        "kind": "git",
+        "git": "https://github.com/cockroachdb/cockroach.git",
+        "ref": "1a62e113d96c8db306ce4823a662dbf209b69392",
+        "ref_origin": "v19.1.11"
+      },
+      "requires": [
+        "ncurses"
+      ]
+    }
+  }
 }

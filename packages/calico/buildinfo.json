@@ -21,5 +21,32 @@
       "url": "https://github.com/mesosphere/libnetwork-plugin/releases/download/v1.1.3-2-d2iq/libnetwork-plugin-amd64",
       "sha1": "2db71bf79ac47e7eba2a59ed81440b47defb29ce"
     }
+  },
+  "architecture_overrides": {
+    "arm64": {
+      "sources": {
+        "calico": {
+          "kind": "url",
+          "url": "https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-arm64",
+          "sha1": "c0b723d6af4dde9481124dae5348815e90ca6123"
+        },
+        "calico-ipam": {
+          "kind": "url",
+          "url": "https://github.com/projectcalico/cni-plugin/releases/download/v3.14.0/calico-ipam-arm64",
+          "sha1": "e248a1c2c031018706df6e03d9e372bf81f6926b"
+        },
+        "calicoctl": {
+          "kind": "url",
+          "url": "https://github.com/projectcalico/calicoctl/releases/download/v3.14.0/calicoctl-linux-arm64",
+          "sha1": "9453ed9b482250d26d0eaf0adeb1a8514294ba70"
+        },
+        "calico-libnetwork-plugin": {
+          "kind": "git",
+          "git": "https://github.com/mesosphere/libnetwork-plugin.git",
+          "ref": "4469d7c501d576bf78631c3decc99fbe54d4db0b",
+          "ref_origin": "v1.1.3-2-d2iq"
+        }
+      }
+    }
   }
 }

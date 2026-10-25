@@ -1,26 +1,29 @@
 {
-  "requires": ["java"],
+  "requires": [
+    "java"
+  ],
   "sources": {
     "exhibitor": {
-      "kind": "git",
-      "git": "https://github.com/dcos/exhibitor.git",
-      "ref": "e6e232e1ae67eaa63f6efa9bbf2a7c095c7e96dd",
-      "ref_origin": "master"
+      "kind": "installer_package",
+      "url": "https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh",
+      "sha1": "85a317a4a3e6d00c90a5a08071bcdc1faa08cccd",
+      "package": "exhibitor--bb9a3028f3a44b14039d91370bbe604dd18a4cd7",
+      "package_sha1": "569dc89f0a37fb167b75cd3d6b5494c7e3a9bc5b"
     },
     "zookeeper": {
       "kind": "url_extract",
-      "url": "https://downloads.mesosphere.com/zookeeper/zookeeper-3.4.14.tar.gz",
+      "url": "https://archive.apache.org/dist/zookeeper/zookeeper-3.4.14/zookeeper-3.4.14.tar.gz",
       "sha1": "285a0c85112d9f99d42cbbf8fb750c9aa5474716"
     },
     "log4j": {
-        "kind": "url",
-        "url": "https://repo1.maven.org/maven2/de/bwaldvogel/log4j-systemd-journal-appender/1.3.2/log4j-systemd-journal-appender-1.3.2.jar",
-        "sha1": "4baf482f0de6ed330e0d3ca77e062f6d944039b7"
+      "kind": "url",
+      "url": "https://repo.maven.apache.org/maven2/de/bwaldvogel/log4j-systemd-journal-appender/1.3.2/log4j-systemd-journal-appender-1.3.2.jar",
+      "sha1": "4baf482f0de6ed330e0d3ca77e062f6d944039b7"
     },
     "jna": {
-        "kind": "url",
-        "url": "https://repo1.maven.org/maven2/net/java/dev/jna/jna/4.2.2/jna-4.2.2.jar",
-        "sha1": "5012450aee579c3118ff09461d5ce210e0cdc2a9"
+      "kind": "url",
+      "url": "https://repo.maven.apache.org/maven2/net/java/dev/jna/jna/4.2.2/jna-4.2.2.jar",
+      "sha1": "5012450aee579c3118ff09461d5ce210e0cdc2a9"
     }
   },
   "username": "dcos_exhibitor",

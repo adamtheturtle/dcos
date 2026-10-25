@@ -20,17 +20,10 @@ export JAVA_HOME="$(find /opt/mesosphere/packages -type d -name java--*)/usr/jav
 
 # Exhibitor
 
-# Generate the build artifacts and store in the local cache, to be used later
-# during the Maven packaging step.
-cd /pkg/src/exhibitor
-./gradlew install
-./gradlew -b exhibitor-standalone/src/main/resources/buildscripts/standalone/gradle/build.gradle shadowJar
-
-exhibitor_path="$PKG_PATH"/usr/exhibitor
+# Recover the exact standalone JAR; regenerate all paths and service files below.
+exhibitor_path="$PKG_PATH/usr/exhibitor"
 mkdir -p "$exhibitor_path"
-pushd "$exhibitor_path"
-cp /pkg/src/exhibitor/exhibitor-standalone/src/main/resources/buildscripts/standalone/gradle/build/libs/exhibitor-1.5.6-SNAPSHOT-all.jar exhibitor.jar
-popd
+cp /pkg/src/exhibitor/usr/exhibitor/exhibitor.jar "$exhibitor_path/exhibitor.jar"
 
 exhibitor_service="$PKG_PATH/dcos.target.wants_master/dcos-exhibitor.service"
 mkdir -p $(dirname "$exhibitor_service")

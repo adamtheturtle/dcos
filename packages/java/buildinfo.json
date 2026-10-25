@@ -1,12 +1,23 @@
 {
-  "sources" : {
+  "sources": {
     "java": {
       "kind": "url_extract",
-      "url": "https://downloads.mesosphere.com/java/OpenJDK8U-jdk_x64_linux_hotspot_8u265b01.tar.gz",
+      "url": "https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u265-b01/OpenJDK8U-jdk_x64_linux_hotspot_8u265b01.tar.gz",
       "sha1": "62046ecb28fccb372d8b6bddd0de1754bbdcaf58"
     }
   },
   "environment": {
     "JAVA_HOME": "/opt/mesosphere/active/java/usr/java"
+  },
+  "architecture_overrides": {
+    "arm64": {
+      "sources": {
+        "java": {
+          "kind": "url_extract",
+          "url": "https://github.com/AdoptOpenJDK/openjdk8-binaries/releases/download/jdk8u265-b01/OpenJDK8U-jdk_aarch64_linux_hotspot_8u265b01.tar.gz",
+          "sha1": "480a633f6f5e408d38afe4a38fcd042e95afafec"
+        }
+      }
+    }
   }
 }

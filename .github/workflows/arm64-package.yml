@@ -10,13 +10,18 @@ jobs:
   openssl:
     name: Native ARM64 core packages
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Test architecture checks
         run: python3 -m unittest discover -s tools/arm64 -v
       - name: Build native core packages
-        run: ./tools/arm64/build.sh openssl libseccomp python
+        run: ./tools/arm64/build.sh openssl libseccomp python java etcd strace boost-libs dcos-ui-update-service
+      - name: Test architecture source selection and archived inputs
+        run: |
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" --entrypoint python3 \
+            dcos/arm64-coordinator:local -m pytest --noconftest \
+            pkgpanda/build/tests/test_architecture.py pkgpanda/build/tests/test_installer_source.py -q
       - name: Check compiler tools
         run: |
           docker run --rm dcos/dcos-builder:dcos-builder_dockerdir-latest \
@@ -34,6 +39,11 @@ jobs:
             packages/cache/packages/libseccomp/libseccomp--*.tar.xz
             packages/cache/packages/liblzma/liblzma--*.tar.xz
             packages/cache/packages/python/python--*.tar.xz
+            packages/cache/packages/java/java--*.tar.xz
+            packages/cache/packages/etcd/etcd--*.tar.xz
+            packages/cache/packages/strace/strace--*.tar.xz
+            packages/cache/packages/boost-libs/boost-libs--*.tar.xz
+            packages/cache/packages/dcos-ui-update-service/dcos-ui-update-service--*.tar.xz
             !packages/cache/packages/**/*-tmp.tar.xz
           if-no-files-found: error
           retention-days: 7

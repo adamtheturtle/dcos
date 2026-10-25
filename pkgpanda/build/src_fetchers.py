@@ -1,6 +1,7 @@
 import abc
 import os.path
 import shutil
+import tarfile
 
 from pkgpanda.exceptions import ValidationError
 from pkgpanda.subprocess import CalledProcessError, check_call, check_output
@@ -334,9 +335,86 @@ class UrlSrcFetcher(SourceFetcher):
             shutil.copyfile(self.cache_filename, self._get_filename(directory))
 
 
+class InstallerPackageSrcFetcher(SourceFetcher):
+    """Recover a pinned package from an archived, self-contained DC/OS installer.
+
+    The installer is read as data. Its Docker image is never loaded or executed.
+    Recipes must select portable assets and rebuild native code separately.
+    """
+    def __init__(self, src_info, cache_dir, working_directory):
+        super().__init__(src_info)
+        required = {'kind', 'url', 'sha1', 'package', 'package_sha1'}
+        if src_info.keys() != required:
+            raise ValidationError('installer_package source requires ' + ', '.join(sorted(required)))
+        for key in ('sha1', 'package_sha1'):
+            if not is_sha(src_info[key]):
+                raise ValidationError(key + ' must be a SHA-1')
+        if '/' in src_info['package'] or '--' not in src_info['package']:
+            raise ValidationError('package must be a complete package ID')
+        self.info = src_info
+        self.working_directory = working_directory
+        # Share the large installer between package source caches.
+        self.cache = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(cache_dir))), '_installers')
+
+    def get_id(self):
+        return {'installer_sha1': self.info['sha1'],
+                'archived_package_sha1': self.info['package_sha1']}
+
+    def checkout_to(self, directory):
+        os.makedirs(self.cache, exist_ok=True)
+        installer = os.path.join(self.cache, self.info['sha1'] + '.sh')
+        package = os.path.join(self.cache, self.info['package'] + '.tar.xz')
+        if not os.path.exists(package):
+            if not os.path.exists(installer):
+                download_atomic(installer, self.info['url'], self.working_directory)
+            if sha1(installer) != self.info['sha1']:
+                raise ValidationError('Archived installer checksum mismatch: ' + installer)
+            temporary = package + '.tmp'
+            try:
+                self._recover(installer, temporary)
+                if sha1(temporary) != self.info['package_sha1']:
+                    raise ValidationError('Recovered package checksum mismatch')
+                os.replace(temporary, package)
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
+        if sha1(package) != self.info['package_sha1']:
+            raise ValidationError('Cached archived package checksum mismatch: ' + package)
+        extract_archive(package, directory)
+
+    def _recover(self, installer, destination):
+        expected = 'artifacts/packages/{0}/{1}.tar.xz'.format(
+            self.info['package'].split('--', 1)[0], self.info['package'])
+        with open(installer, 'rb') as stream:
+            while stream.tell() < 65536:
+                line = stream.readline()
+                if line == b'#EOF#\n':
+                    break
+                if not line:
+                    raise ValidationError('Missing installer archive marker')
+            else:
+                raise ValidationError('Missing installer archive marker')
+            with tarfile.open(fileobj=stream, mode='r|') as outer:
+                for image in outer:
+                    if not image.isfile() or not image.name.endswith('.tar'):
+                        continue
+                    with tarfile.open(fileobj=outer.extractfile(image), mode='r|') as layers:
+                        for layer in layers:
+                            if not layer.isfile() or not layer.name.endswith('/layer.tar'):
+                                continue
+                            with tarfile.open(fileobj=layers.extractfile(layer), mode='r|') as files:
+                                for member in files:
+                                    if member.isfile() and member.name.lstrip('./') == expected:
+                                        with open(destination, 'wb') as output:
+                                            shutil.copyfileobj(files.extractfile(member), output)
+                                        return
+        raise ValidationError('Package missing from archived installer: ' + expected)
+
+
 all_fetchers = {
     "git": GitSrcFetcher,
     "git_local": GitLocalSrcFetcher,
     "url": UrlSrcFetcher,
-    "url_extract": UrlSrcFetcher
+    "url_extract": UrlSrcFetcher,
+    "installer_package": InstallerPackageSrcFetcher
 }

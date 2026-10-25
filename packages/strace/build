@@ -4,6 +4,11 @@ mkdir -p build
 pushd build
 
 cd /pkg/src/strace
+# strace 4.10's release tarball omitted this tracked AArch64 header.
+# Restore the declarations from its upstream v4.10 source tree.
+if [ "$(uname -m)" = aarch64 ]; then
+    cp /pkg/extra/aarch64_arch_regs.h linux/aarch64/arch_regs.h
+fi
 ./configure --prefix="$PKG_PATH"
 make
 make install

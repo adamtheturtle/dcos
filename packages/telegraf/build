@@ -4,14 +4,17 @@ set -o errexit
 set -o xtrace
 set -o nounset
 
-# Install the package that provides envsubst.
-apt-get update && apt-get install gettext-base
-which envsubst
-
-# Install dep to enable the deps target in Telegraf's Makefile.
-dep_version=0.5.0
-curl -L -s https://github.com/golang/dep/releases/download/v$dep_version/dep-linux-amd64 -o $GOPATH/bin/dep
-chmod a+x $GOPATH/bin/dep
+# Build dep natively on ARM64; the old release only published AMD64 binaries.
+if [ -d /pkg/src/dep/.git ]; then
+    mkdir -p "$GOPATH/src/github.com/golang" "$GOPATH/bin"
+    ln -s /pkg/src/dep "$GOPATH/src/github.com/golang/dep"
+    (cd "$GOPATH/src/github.com/golang/dep" && GO111MODULE=off go build -o "$GOPATH/bin/dep" ./cmd/dep)
+else
+    apt-get update && apt-get install -y gettext-base
+    curl -fLsS https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64 -o "$GOPATH/bin/dep"
+    chmod a+x "$GOPATH/bin/dep"
+fi
+export GO111MODULE=off GOMAXPROCS="$NUM_CORES"
 
 project="github.com/influxdata/telegraf"
 project_src_path="$GOPATH/src/$project"

@@ -2,10 +2,12 @@ import copy
 import json
 import multiprocessing
 import os
+import platform
 import random
 import shutil
 import string
 import tempfile
+import time
 from contextlib import contextmanager
 from os import chdir, getcwd, mkdir
 from os.path import exists
@@ -116,7 +118,7 @@ def get_src_fetcher(src_info, cache_dir, working_directory):
             'cache_dir': cache_dir
         }
 
-        if src_info['kind'] in ['git_local', 'url', 'url_extract']:
+        if src_info['kind'] in ['git_local', 'url', 'url_extract', 'installer_package']:
             args['working_directory'] = working_directory
 
         return pkgpanda.build.src_fetchers.all_fetchers[kind](**args)
@@ -517,6 +519,19 @@ def load_config_variant(directory, variant, extension):
 
 def load_buildinfo(path, variant):
     buildinfo = load_config_variant(path, variant, 'buildinfo.json')
+
+    # Native builds can select architecture-specific downloads without changing
+    # package names or dependency variants. Overrides replace whole top-level
+    # fields, so the resulting sources remain part of the normal package hash.
+    overrides = buildinfo.pop('architecture_overrides', {})
+    if not isinstance(overrides, dict):
+        raise BuildError('architecture_overrides must be a dictionary')
+    machine = platform.machine().lower()
+    architecture = {'aarch64': 'arm64', 'x86_64': 'amd64'}.get(machine, machine)
+    selected = overrides.get(architecture, {})
+    if not isinstance(selected, dict):
+        raise BuildError('architecture override for {} must be a dictionary'.format(architecture))
+    buildinfo.update(selected)
 
     # Fill in default / guaranteed members so code everywhere doesn't have to guard around it.
     default_build_script = 'build'
@@ -1233,13 +1248,19 @@ def _build(package_store, name, variant, clean_after_build, recursive):
 
     if os.path.exists(extra_dir):
         cmd.volumes[extra_dir] = PKG_DIR + "/extra:ro"
+    try:
+        build_jobs = int(os.environ.get('DCOS_BUILD_JOBS', multiprocessing.cpu_count()))
+    except ValueError:
+        raise BuildError('DCOS_BUILD_JOBS must be a positive integer')
+    if build_jobs < 1:
+        raise BuildError('DCOS_BUILD_JOBS must be a positive integer')
     cmd.environment = {
         "PKG_VERSION": version,
         "PKG_NAME": name,
         "PKG_ID": pkg_id,
         "PKG_PATH": install_root + "/packages/{}".format(pkg_id),
         "PKG_VARIANT": variant if variant is not None else "<default>",
-        "NUM_CORES": multiprocessing.cpu_count()
+        "NUM_CORES": build_jobs
     }
 
     try:
@@ -1251,9 +1272,16 @@ def _build(package_store, name, variant, clean_after_build, recursive):
     except CalledProcessError as ex:
         raise BuildError("docker exited non-zero: {}\nCommand: {}".format(ex.returncode, ' '.join(ex.cmd)))
 
-    # Clean up the temporary install dir used for dependencies.
-    # TODO(cmaloney): Move to an RAII wrapper.
-    remove_directory(install_dir)
+    # Docker Desktop can briefly retain read-only bind-mount permissions after
+    # removing the build container. Retry only this temporary build-root cleanup.
+    for attempt in range(3):
+        try:
+            remove_directory(install_dir)
+            break
+        except CalledProcessError:
+            if attempt == 2:
+                raise
+            time.sleep(0.5)
 
     with logger.scope("Build package tarball"):
         # Check for forbidden services before packaging the tarball:

@@ -1,14 +1,35 @@
 {
   "docker": "golang:1.11-stretch",
-  "single_source" : {
-    "kind": "git",
-    "git": "https://github.com/dcos/telegraf.git",
-    "ref": "f83bd5ec97d7f704aeed545c86f8ccbd6668865d",
-    "ref_origin": "1.9.4-dcos"
-  },
   "environment": {
     "STATSD_UDP_HOST": "localhost",
     "STATSD_UDP_PORT": "61825"
   },
-  "username": "dcos_telegraf"
+  "username": "dcos_telegraf",
+  "architecture_overrides": {
+    "arm64": {
+      "docker": "dcos/dcos-builder:dcos-builder_dockerdir-latest",
+      "sources": {
+        "telegraf": {
+          "kind": "git",
+          "git": "https://github.com/dcos/telegraf.git",
+          "ref": "f83bd5ec97d7f704aeed545c86f8ccbd6668865d",
+          "ref_origin": "1.9.4-dcos"
+        },
+        "dep": {
+          "kind": "git",
+          "git": "https://github.com/golang/dep.git",
+          "ref": "224a564abe296670b692fe08bb63a3e4c4ad7978",
+          "ref_origin": "v0.5.0"
+        }
+      }
+    }
+  },
+  "sources": {
+    "telegraf": {
+      "kind": "git",
+      "git": "https://github.com/dcos/telegraf.git",
+      "ref": "f83bd5ec97d7f704aeed545c86f8ccbd6668865d",
+      "ref_origin": "1.9.4-dcos"
+    }
+  }
 }

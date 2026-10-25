@@ -1,6 +1,13 @@
 {
   "docker": "dcos/dcos-builder:adminrouter_dockerdir-latest",
-  "requires": ["openssl"],
+  "requires": [
+    "openssl"
+  ],
   "sources": {},
-  "username": "dcos_adminrouter"
+  "username": "dcos_adminrouter",
+  "architecture_overrides": {
+    "arm64": {
+      "docker": "dcos/adminrouter-builder:local"
+    }
+  }
 }

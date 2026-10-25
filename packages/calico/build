@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 set -x
 
 # NOTE(jkoelker) fix repo location since centos decided to move urls
@@ -8,7 +9,15 @@ sed -i 's,mirror.centos.org/centos,vault.centos.org,' /etc/yum.repos.d/centos.re
 microdnf install -y gettext tar
 
 # create a go build environment
-curl https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz | tar -zvx -C /usr/local
+case "$(uname -m)" in
+  x86_64) go_arch=amd64; go_sha256=0804bf02020dceaa8a7d7275ee79f7a142f1996bfd0c39216ccb405f93f994c0 ;;
+  aarch64) go_arch=arm64; go_sha256=9fa65ae42665baff53802091b49b83af6f2e397986b6cbea2ae30e2c7ee0f2f2 ;;
+  *) echo "Unsupported architecture" >&2; exit 1 ;;
+esac
+curl -fsSL "https://go.dev/dl/go1.13.3.linux-${go_arch}.tar.gz" -o /tmp/go.tar.gz
+echo "$go_sha256 /tmp/go.tar.gz" | sha256sum -c -
+tar -xzf /tmp/go.tar.gz -C /usr/local
+export GOMAXPROCS="$NUM_CORES"
 export GOROOT=/usr/local/go
 export GOPATH=/tmp/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
@@ -16,18 +25,18 @@ mkdir -p $GOPATH
 
 # build the cni plugin wrapper
 # NOTE(icharala): This is a temporary fix for D2IQ-62219
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags -w -o $PKG_PATH/cni/calico /pkg/extra/calico-cni-wrapper.go
+CGO_ENABLED=0 GOOS=linux GOARCH=$go_arch go build -ldflags -w -o $PKG_PATH/cni/calico /pkg/extra/calico-cni-wrapper.go
 
 # copy calico CNI plugin to CNI plugin directory
 mkdir -p $PKG_PATH/cni
-cp /pkg/src/calico/calico-amd64 $PKG_PATH/cni/calico-impl
+cp /pkg/src/calico/calico-${go_arch} $PKG_PATH/cni/calico-impl
 chmod +x $PKG_PATH/cni/calico
 chmod +x $PKG_PATH/cni/calico-impl
-cp /pkg/src/calico-ipam/calico-ipam-amd64 $PKG_PATH/cni/calico-ipam
+cp /pkg/src/calico-ipam/calico-ipam-${go_arch} $PKG_PATH/cni/calico-ipam
 chmod +x $PKG_PATH/cni/calico-ipam
 
 mkdir -p $PKG_PATH/bin
-cp /pkg/src/calicoctl/calicoctl-linux-amd64 $PKG_PATH/bin/calicoctl
+cp /pkg/src/calicoctl/calicoctl-linux-${go_arch} $PKG_PATH/bin/calicoctl
 chmod +x $PKG_PATH/bin/calicoctl
 
 # copy the default calico profile to the package directory
@@ -60,7 +69,12 @@ done
 # copy calico libnetwork scripts and plugins
 cp /pkg/extra/create-calico-docker-network.py $PKG_PATH/bin/create-calico-docker-network.py
 chmod +x $PKG_PATH/bin/create-calico-docker-network.py
-cp /pkg/src/calico-libnetwork-plugin/libnetwork-plugin-amd64 $PKG_PATH/bin/calico-libnetwork-plugin
+if [ -f /pkg/src/calico-libnetwork-plugin/go.mod ]; then
+    (cd /pkg/src/calico-libnetwork-plugin && CGO_ENABLED=0 GO111MODULE=on go build -mod=readonly \
+      -ldflags '-X main.VERSION=v1.1.3-2-d2iq -s -w' -o "$PKG_PATH/bin/calico-libnetwork-plugin" main.go)
+else
+    cp /pkg/src/calico-libnetwork-plugin/libnetwork-plugin-${go_arch} "$PKG_PATH/bin/calico-libnetwork-plugin"
+fi
 chmod +x $PKG_PATH/bin/calico-libnetwork-plugin
 
 # calico-libnetwork service works only on slaves

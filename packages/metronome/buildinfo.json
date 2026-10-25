@@ -4,9 +4,11 @@
     "exhibitor"
   ],
   "single_source": {
-    "kind": "url_extract",
-    "url": "https://s3.amazonaws.com/downloads.mesosphere.io/metronome/builds/0.6.70-1bcc08c/metronome-0.6.70-1bcc08c.tgz",
-    "sha1": "21e73488aaee066a4ac41eaa2457c94ffc4eb07e"
+    "kind": "installer_package",
+    "url": "https://downloads.dcos.io/dcos/testing/master/dcos_generate_config.sh",
+    "sha1": "85a317a4a3e6d00c90a5a08071bcdc1faa08cccd",
+    "package": "metronome--964d30e54c928586347cb16df41c7e2b26d27a5e",
+    "package_sha1": "524a264f09bfade598f6aff8c4d228f8ab708307"
   },
   "username": "dcos_metronome",
   "state_directory": true

@@ -13,9 +13,9 @@ source /opt/mesosphere/environment.export
 mkdir -p "$PKG_PATH/marathon/bin"
 mkdir -p "$PKG_PATH/marathon/lib"
 
-cp -rp /pkg/src/marathon/bin/marathon "$PKG_PATH/marathon/bin/marathon"
+cp -rp /pkg/src/marathon/marathon/bin/marathon "$PKG_PATH/marathon/bin/marathon"
 chmod +x "$PKG_PATH/marathon/bin/marathon"
-cp -rpn /pkg/src/marathon/lib/*.jar "$PKG_PATH/marathon/lib"
+cp -rpn /pkg/src/marathon/marathon/lib/*.jar "$PKG_PATH/marathon/lib"
 
 marathon_wrapper="$PKG_PATH/bin/marathon.sh"
 mkdir -p "$(dirname "$marathon_wrapper")"
