@@ -6,6 +6,6 @@ mkdir -p "$LIB_INSTALL_DIR"
 export PKG_CONFIG_PATH=/opt/mesosphere/lib/pkgconfig
 
 for package in cffi cryptography; do
-  pip3 install --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/$package/
+  pip3 install --no-build-isolation --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/$package/
 done
 

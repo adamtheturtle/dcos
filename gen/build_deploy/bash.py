@@ -3,6 +3,7 @@
 import json
 import os
 import os.path
+import platform
 import shutil
 import tempfile
 
@@ -772,9 +773,12 @@ def make_installer_docker(variant, variant_info, installer_info):
             copy_file(os.getcwd() + '/' + src_prefix + '/' + filename, dest_filename)
 
         def fill_template(base_name, format_args):
+            template_name = base_name
+            if base_name == 'Dockerfile' and platform.machine() in ('aarch64', 'arm64'):
+                template_name = 'Dockerfile.arm64'
             pkgpanda.util.write_string(
                 dest_path(base_name),
-                pkg_resources.resource_string(__name__, 'bash/' + base_name + '.in').decode().format(**format_args))
+                pkg_resources.resource_string(__name__, 'bash/' + template_name + '.in').decode().format(**format_args))
 
         fill_template('Dockerfile', {
             'installer_bootstrap_filename': installer_bootstrap_filename,
@@ -789,6 +793,11 @@ def make_installer_docker(variant, variant_info, installer_info):
             'bootstrap_id': bootstrap_id,
             'dcos_image_commit': util.dcos_image_commit})
 
+        if platform.machine() in ('aarch64', 'arm64'):
+            wrapper = dest_path('installer_internal_wrapper')
+            with open(wrapper) as stream:
+                contents = stream.read().replace('#!/bin/sh', '#!/bin/bash', 1)
+            pkgpanda.util.write_string(wrapper, contents)
         subprocess.check_call(['chmod', '+x', dest_path('installer_internal_wrapper')])
 
         # TODO(cmaloney) make this use make_bootstrap_artifacts / that set

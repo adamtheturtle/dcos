@@ -11,6 +11,12 @@ for patch in /pkg/extra/patches/*; do
   git -c user.name="Mesosphere CI" -c user.email="mesosphere-ci@users.noreply.github.com" am $patch
 done
 
+# Backport jemalloc PR #1035: AArch64 user pointers must be zero extended.
+# Without this, the bundled 5.0.1 allocator crashes before Mesos reaches main().
+if [ "$(uname -m)" = aarch64 ]; then
+    sed -i '/CONFIGURE_COMMAND ${JEMALLOC_CONFIGURE_COMMAND}/a\    PATCH_COMMAND patch -p1 -i /pkg/extra/jemalloc-arm64.patch' 3rdparty/CMakeLists.txt
+fi
+
 mkdir -p build
 pushd build
 

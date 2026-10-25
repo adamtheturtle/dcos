@@ -124,6 +124,7 @@ setup(
             'azure/templates/azuredeploy.json',
             'build_deploy/bash/dcos_generate_config.sh.in',
             'build_deploy/bash/Dockerfile.in',
+            'build_deploy/bash/Dockerfile.arm64.in',
             'build_deploy/bash/installer_internal_wrapper.in',
             'build_deploy/bash/dcos-launch.spec',
             'build_deploy/powershell/dcos_install.ps1.in',
