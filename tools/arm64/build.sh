@@ -32,6 +32,8 @@ prepare_builder dcos/dcos-builder:dcos-builder_dockerdir-latest \
 prepare_builder dcos/arm64-coordinator:local "$repo_dir/tools/arm64" Dockerfile linux/arm64 Dockerfile
 base_id=$(docker image inspect dcos/dcos-builder:dcos-builder_dockerdir-latest --format '{{.Id}}')
 for package in "$@"; do
+    # The installer-only tree consists of Python packages, not cluster services.
+    if [ "$1" = tree ] && [ "${2:-default}" = installer ]; then break; fi
     case "$package" in
         calico|tree)
             prepare_builder dcos/calico-builder:local "$repo_dir/tools/arm64" calico.Dockerfile \

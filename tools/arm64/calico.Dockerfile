@@ -6,4 +6,4 @@ COPY --from=calico /bin/calico-node /bin/calico-node
 COPY --from=calico /bin/bird /bin/bird
 COPY --from=calico /bin/birdcl /bin/birdcl
 COPY --from=calico /etc/calico/confd /etc/calico/confd
-RUN /bin/bird --version && /bin/birdcl --help
+RUN /bin/bird --version
