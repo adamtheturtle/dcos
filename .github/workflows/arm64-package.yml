@@ -8,25 +8,32 @@ permissions:
   contents: read
 jobs:
   openssl:
-    name: Native ARM64 OpenSSL
+    name: Native ARM64 core packages
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Test architecture checks
         run: python3 -m unittest discover -s tools/arm64 -v
-      - name: Build native package
-        run: ./tools/arm64/build.sh openssl
+      - name: Build native core packages
+        run: ./tools/arm64/build.sh openssl libseccomp python
       - name: Check compiler tools
         run: |
           docker run --rm dcos/dcos-builder:dcos-builder_dockerdir-latest \
             -c 'test "$(uname -m)" = aarch64; cmake --version; go version; aws --version'
-      - name: Run package smoke test
-        run: ./tools/arm64/smoke_openssl.sh
+      - name: Run package smoke tests
+        run: |
+          ./tools/arm64/smoke_openssl.sh
+          ./tools/arm64/smoke_python.sh
       - name: Save package
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: openssl-linux-arm64
-          path: packages/cache/packages/openssl/openssl--*.tar.xz
+          name: dcos-core-packages-linux-arm64
+          path: |
+            packages/cache/packages/openssl/openssl--*.tar.xz
+            packages/cache/packages/libseccomp/libseccomp--*.tar.xz
+            packages/cache/packages/liblzma/liblzma--*.tar.xz
+            packages/cache/packages/python/python--*.tar.xz
+            !packages/cache/packages/**/*-tmp.tar.xz
           if-no-files-found: error
           retention-days: 7

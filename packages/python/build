@@ -30,7 +30,8 @@ export LD_LIBRARY_PATH=$PKG_PATH/lib
 export LIB_INSTALL_DIR="$PKG_PATH/lib/python3.6/site-packages"
 $PKG_PATH/bin/python3 -m pip install --upgrade --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/setuptools/*.whl
 
-$PKG_PATH/bin/python3 -m pip install --upgrade --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/pip
+# Use the pinned setuptools above instead of fetching a modern build backend.
+$PKG_PATH/bin/python3 -m pip install --no-build-isolation --upgrade --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/pip
 echo "pip version: $($PKG_PATH/bin/pip3 --version)"
 
 

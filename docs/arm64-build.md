@@ -48,6 +48,7 @@ available for ARM64. The wrapper builds the common compiler image only.
 * Select the Go 1.15 archive and checksum for the native architecture.
 * Select OpenSSL's native configure target and restore its upstream source URL,
   retaining the original DC/OS source checksum.
+* Install the pinned pip source without fetching a modern build backend.
 * Resolve native system library paths for Mesos, Admin Router, and conntrack.
 * Select the native Glide archive for the DC/OS CNI build.
 
@@ -68,18 +69,39 @@ AMD64 `dep` binary whose release has no corresponding ARM64 asset at that URL.
 These require verified ARM64 replacements or source builds. The Admin Router
 build image also needs ARM64 work beyond the package's library-copy path.
 
-Restoring the common compiler image and one native package does not resolve
+The pinned scheduler source commits are still available:
+[Marathon](https://github.com/mesosphere/marathon/commit/9ee9f3cebb73b1885592a9d634279720bad823cf)
+and [Metronome](https://github.com/dcos/metronome/commit/1bcc08cc88cccf4fa4923f64fe008eff0c16837f).
+Building replacement distributions from those commits would require restoring
+their separate Scala/sbt build environments and validating the resulting JARs.
+Those source builds are not implemented by this branch.
+
+Restoring the common compiler image and native core packages does not resolve
 these distribution inputs. A full installer build and a cluster smoke test
 remain necessary before this branch can claim DC/OS ARM64 support.
-
-The local Mac had approximately 7.4 GiB free before this work, below upstream's
-stated requirement of more than 10 GB. The full Mesos/distribution build needs
-additional storage before it is attempted here.
 
 ## CI
 
 The `Native ARM64 package` GitHub Actions workflow runs on
-`ubuntu-24.04-arm`. It builds OpenSSL with the native compiler image, checks all
-ELF headers in the package, and executes the packaged OpenSSL binary against a
-known SHA-256 test vector. Successful runs upload the package archive.
-This workflow validates the package build path, not the complete distribution.
+`ubuntu-24.04-arm`. It builds OpenSSL, libseccomp, Python and the XZ dependency
+with the native compiler image, checks their ELF headers, and runs packaged
+OpenSSL and Python binaries. The smoke tests check a SHA-256 test vector,
+TLS linkage, XZ compression, the ctypes calling convention, Cython extension
+import and libseccomp's native architecture identifier.
+Successful runs upload the package archives. This workflow validates the core
+package build path, not the complete distribution.
+
+## Local verification
+
+On 2026-10-25, the native compiler image and four package archives built locally:
+
+| Package | AArch64 ELF files checked |
+| --- | ---: |
+| OpenSSL 1.1.1g | 6 |
+| libseccomp 2.3.3 | 2 |
+| XZ/liblzma 5.2.4 | 5 |
+| Python 3.6.8, including Cython 0.29.1 | 71 |
+
+The packaged OpenSSL and Python smoke tests passed. ShellCheck, actionlint,
+architecture-check unit tests and `git diff --check` passed. Hosted CI status is
+reported separately by the fork's Actions workflow.
