@@ -1,5 +1,8 @@
 {
-  "requires": ["python", "teamcity-messages"],
+  "requires": [
+    "python",
+    "teamcity-messages"
+  ],
   "sources": {
     "pytest": {
       "kind": "url_extract",
@@ -30,6 +33,16 @@
       "kind": "url_extract",
       "url": "https://files.pythonhosted.org/packages/ac/ed/a311712ef6b4355035489f665e63e1a73f9eb371929e3c98e5efd451069e/atomicwrites-1.2.1.tar.gz",
       "sha1": "fec341b1028177784ac97436c479a397ffeb20d7"
+    },
+    "setuptools_scm": {
+      "kind": "url",
+      "url": "https://files.pythonhosted.org/packages/1d/70/97966deebaeeda0b81d3cd63ba9f8ec929b838871ed17476de9d8159db3e/setuptools_scm-3.3.3-py2.py3-none-any.whl",
+      "sha1": "0419f07ac416e19952dc0ce0c329406709029540"
+    },
+    "wheel": {
+      "kind": "url",
+      "url": "https://files.pythonhosted.org/packages/96/ba/a4702cbb6a3a485239fbe9525443446203f00771af9ac000fa3ef2788201/wheel-0.33.1-py2.py3-none-any.whl",
+      "sha1": "1a9dbe1b84a402c072f6b2c459d45bc5e41027ea"
     }
   }
 }

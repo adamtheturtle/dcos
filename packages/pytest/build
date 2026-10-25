@@ -3,8 +3,13 @@ source /opt/mesosphere/environment.export
 export LIB_INSTALL_DIR="$PKG_PATH/lib/python3.6/site-packages"
 mkdir -p "$LIB_INSTALL_DIR"
 
-pip list
+# Supply the original build backend locally instead of resolving today's tools.
+mkdir -p /tmp/pytest-build-tools
+pip3 install --no-index --no-deps --target=/tmp/pytest-build-tools \
+    /pkg/src/setuptools_scm/*.whl /pkg/src/wheel/*.whl
+export PYTHONPATH="/tmp/pytest-build-tools:$PYTHONPATH"
+
 
 for package in pluggy py attrs moreitertools atomicwrites pytest; do
-  pip3 install --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/$package/
+  pip3 install --no-build-isolation --no-deps --install-option="--prefix=$PKG_PATH" --root=/ /pkg/src/$package/
 done
