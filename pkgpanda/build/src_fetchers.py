@@ -59,10 +59,12 @@ class SourceFetcher(metaclass=abc.ABCMeta):
         pass
 
 
-def get_git_sha1(bare_folder, ref):
+def get_git_sha1(bare_folder, ref, trusted_worktree=None):
         try:
-            return check_output([
-                "git",
+            command = ['git']
+            if trusted_worktree is not None:
+                command += ['-c', 'safe.directory=' + trusted_worktree]
+            return check_output(command + [
                 "--git-dir", bare_folder,
                 "rev-parse", ref + "^{commit}"
             ]).decode('ascii').strip()
@@ -150,6 +152,7 @@ class GitLocalSrcFetcher(SourceFetcher):
         try:
             git_status = check_output([
                 'git',
+                '-c', 'safe.directory=' + self.src_repo_path,
                 '-C',
                 self.src_repo_path,
                 'status',
@@ -168,14 +171,15 @@ class GitLocalSrcFetcher(SourceFetcher):
             raise ValidationError("Unable to check status of git_local_work checkout {}. Is the "
                                   "rel_path correct?".format(src_info['rel_path']))
 
-        self.commit = get_git_sha1(self.src_repo_path + "/.git", "HEAD")
+        self.commit = get_git_sha1(self.src_repo_path + "/.git", "HEAD", self.src_repo_path)
 
     def get_id(self):
         return {"commit": self.commit}
 
     def checkout_to(self, directory):
         # Clone into `src/`.
-        check_call(["git", "clone", "-q", self.src_repo_path, directory])
+        check_call(["git", "-c", "safe.directory=" + self.src_repo_path,
+                    "clone", "-q", self.src_repo_path, directory])
 
         # Make sure we got the right commit as head
         assert get_git_sha1(directory + "/.git", "HEAD") == self.commit
