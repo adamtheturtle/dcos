@@ -21,7 +21,8 @@ jobs:
         run: |
           docker run --rm -v "$PWD:$PWD" -w "$PWD" --entrypoint python3 \
             dcos/arm64-coordinator:local -m pytest --noconftest \
-            pkgpanda/build/tests/test_architecture.py pkgpanda/build/tests/test_installer_source.py -q
+            pkgpanda/build/tests/test_architecture.py pkgpanda/build/tests/test_installer_source.py \
+            pkgpanda/build/tests/test_git_local.py -q
       - name: Check compiler tools
         run: |
           docker run --rm dcos/dcos-builder:dcos-builder_dockerdir-latest \
