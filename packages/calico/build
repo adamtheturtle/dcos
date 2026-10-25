@@ -2,11 +2,11 @@
 set -euo pipefail
 set -x
 
-# NOTE(jkoelker) fix repo location since centos decided to move urls
-sed -i 's,mirror.centos.org/centos,vault.centos.org,' /etc/yum.repos.d/centos.repo
-
-# calico container is missing 'envsubst'
-microdnf install -y gettext tar
+# The original AMD64 image uses CentOS; the native builder already has these tools.
+if command -v microdnf >/dev/null; then
+    sed -i 's,mirror.centos.org/centos,vault.centos.org,' /etc/yum.repos.d/centos.repo
+    microdnf install -y gettext tar
+fi
 
 # create a go build environment
 case "$(uname -m)" in
@@ -16,9 +16,10 @@ case "$(uname -m)" in
 esac
 curl -fsSL "https://go.dev/dl/go1.13.3.linux-${go_arch}.tar.gz" -o /tmp/go.tar.gz
 echo "$go_sha256 /tmp/go.tar.gz" | sha256sum -c -
-tar -xzf /tmp/go.tar.gz -C /usr/local
+mkdir -p /opt/calico-go
+tar -xzf /tmp/go.tar.gz --strip-components=1 -C /opt/calico-go
 export GOMAXPROCS="$NUM_CORES"
-export GOROOT=/usr/local/go
+export GOROOT=/opt/calico-go
 export GOPATH=/tmp/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 mkdir -p $GOPATH

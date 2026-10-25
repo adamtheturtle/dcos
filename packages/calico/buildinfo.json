@@ -46,7 +46,8 @@
           "ref": "4469d7c501d576bf78631c3decc99fbe54d4db0b",
           "ref_origin": "v1.1.3-2-d2iq"
         }
-      }
+      },
+      "docker": "dcos/calico-builder:local"
     }
   }
 }

@@ -16,6 +16,10 @@ def pack_sources(root, stream):
     def include(member):
         # Stream readers cannot seek back to materialize tar hard links.
         archive.inodes.clear()
+        # The coordinator runs as root; Mac ownership would make Git reject the
+        # copied checkout as unsafe, including git_local source packages.
+        member.uid = member.gid = 0
+        member.uname = member.gname = 'root'
         name = member.name[2:] if member.name.startswith('./') else member.name
         if any(name == prefix or name.startswith(prefix + '/') for prefix in EXCLUDED):
             return None

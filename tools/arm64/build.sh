@@ -33,6 +33,11 @@ prepare_builder dcos/arm64-coordinator:local "$repo_dir/tools/arm64" Dockerfile 
 base_id=$(docker image inspect dcos/dcos-builder:dcos-builder_dockerdir-latest --format '{{.Id}}')
 for package in "$@"; do
     case "$package" in
+        calico|tree)
+            prepare_builder dcos/calico-builder:local "$repo_dir/tools/arm64" calico.Dockerfile \
+                "$base_id" calico.Dockerfile ;;
+    esac
+    case "$package" in
         adminrouter|tree)
             prepare_builder dcos/adminrouter-builder:local "$repo_dir/tools/arm64" adminrouter.Dockerfile \
                 "$base_id" adminrouter.Dockerfile build-resty.sh ;;

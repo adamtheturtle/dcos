@@ -42,6 +42,8 @@ class WorkspaceTest(unittest.TestCase):
             stream.seek(0)
             with tarfile.open(fileobj=stream) as archive:
                 names = archive.getnames()
+                self.assertEqual(archive.getmember('.').uid, 0)
+                self.assertEqual(archive.getmember('.').gid, 0)
             self.assertIn('./build.py', names)
             self.assertNotIn('./packages/cache/output', names)
 
