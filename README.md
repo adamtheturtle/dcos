@@ -1,7 +1,7 @@
 # DC/OS - The Datacenter Operating System
 
-For native Linux ARM64 package builds and current distribution blockers, see
-[ARM64 build work](docs/arm64-build.md).
+For the native Linux ARM64 installer build and verification, see
+[ARM64 build instructions](docs/arm64-build.md).
 
 The easiest way to run microservices, big data, and containers in production.
 

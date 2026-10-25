@@ -1,7 +1,10 @@
 # Native Linux ARM64 build
 
 This fork starts at DC/OS master `79b9a39b4e639dc2c9435a869918399b50bfaf24`.
-The full distribution is being brought up; an ARM64 cluster has not been validated.
+The complete native Linux ARM64 installer builds from this branch. Its CLI and
+offline configuration generation have passed smoke checks. A full DC/OS cluster
+deployment has not been validated. Cloud provisioning templates retain their
+upstream image choices; the tested installer targets on-premises Linux ARM64.
 
 ## Build
 
@@ -20,7 +23,8 @@ costs. Completed archives are copied back to `packages/cache`; caches survive fa
 builds. `DCOS_ARM64_VOLUME` selects a volume explicitly. Concurrent builds in the
 same volume are rejected. `DCOS_BUILD_JOBS` defaults to 2; use 1 for Mesos on small
 machines. Allow substantial disk space for a full source build; the wrapper refuses
-to start with less than 10 GiB free for packages or 50 GiB for the full tree. Use a separate checkout/cache from AMD64.
+to start with less than 10 GiB free for packages or 50 GiB for the full tree.
+Use a separate checkout/cache from AMD64.
 
 Builder images are cached by their input file contents. Set `DCOS_REBUILD_BUILDERS=1`
 to rebuild them. Package identities include the selected native source checksums,
@@ -34,7 +38,10 @@ metadata is removed before hashing. Sources and single_source are mutually exclu
 
 The Mesosphere download host no longer resolves, and the original scheduler
 archives return 403. Sources with unchanged checksums are restored from upstream
-OpenSSL, Boost, AdoptOpenJDK, Apache ZooKeeper and strace downloads. Java, etcd and
+OpenSSL, Boost, AdoptOpenJDK, Apache ZooKeeper, strace and libsodium downloads.
+Fluent Bit 1.4.6 uses its checksum-pinned upstream GitHub tag archive because the
+old release URL now serves HTML. DC/OS networking uses Rebar 3.16.1, compatible
+with the pinned Erlang/OTP 22 and the current Hex registry. Java, etcd and
 Calico select verified ARM64 release inputs. CockroachDB is compiled from its pinned
 19.1.11 source using a portable RocksDB configuration and native Node/Yarn tools.
 The UI update service, Calico libnetwork plugin and Telegraf dependency manager
@@ -52,7 +59,8 @@ service files and dependency metadata are regenerated. Marathon and Metronome's
 archived buildinfo records exactly the source checksums pinned by this repository.
 The installer is shared in a download cache. If the moving upstream URL changes,
 the pinned checksum intentionally fails; an archived copy with that checksum is
-needed. No native AMD64 executables are reused.
+needed. The recovered archives supply Java application assets; package-level
+native executables are compiled or selected for ARM64.
 
 Admin Router copies the original checksum-verified, uncompiled OpenResty and VTS
 source bundles from a digest-pinned legacy builder image. The final build image
@@ -68,7 +76,8 @@ python3 -m unittest discover -s tools/arm64 -v
 ./tools/arm64/smoke_cockroach.sh
 ./tools/arm64/smoke_adminrouter.sh
 ./tools/arm64/smoke_schedulers.sh
-./tools/arm64/smoke_services.sh  # after Mesos and its dependencies are built
+./tools/arm64/smoke_services.sh
+./tools/arm64/smoke_installer.sh  # uses the build volume selected above
 python3 tools/arm64/check_elf.py packages/cache/packages/mesos/mesos--*.tar.xz
 ```
 
@@ -84,16 +93,21 @@ backport is applied during the bundled allocator build.
 The pinned etcd release requires `ETCD_UNSUPPORTED_ARCH=arm64`, supplied in its
 ARM64 package environment.
 
-Locally verified: OpenSSL, libseccomp, XZ, Python, Java, etcd, strace, Boost, the UI
-update service, and Mesos compile/package for ARM64. CockroachDB 19.1.11 packages
-and an isolated in-memory database answers SQL. Admin Router serves a LuaJIT HTTP
-request. Marathon loads the ARM64 Mesos JNI library and prints its help. The
-installer bootstrap executes its CLI and passes a cryptography/CFFI SHA-256
-check. Metronome starts against a local ZooKeeper and serves HTTP `pong`.
-DC/OS networking, Fluent Bit, Calico and Erlang compile/package for ARM64.
-The clean Mesos rebuild and full distribution assembly are in progress. A full installer and cluster smoke test are
-still required before claiming complete DC/OS ARM64 support.
+On 2026-10-25, all 81 distribution packages built successfully. Every selected
+archive passed the architecture audit: 491 package-level ELF files are AArch64.
+The corrected Mesos master and agent execute and report version 1.11.0.
+CockroachDB 19.1.11 starts an in-memory database and answers SQL. Admin Router
+serves a LuaJIT HTTP request. Marathon loads the ARM64 Mesos JNI library and
+prints its help; Metronome starts against a local ZooKeeper and serves HTTP
+`pong`. Erlang runs with the packaged OpenSSL library. The installer bootstrap
+passes a native cryptography/CFFI SHA-256 check.
+
+The self-contained `packages/cache/dcos_generate_config.sh` loads its ARM64 Docker
+image and executes its CLI successfully. An isolated `--genconf` invocation,
+with Docker networking disabled and a temporary static-master configuration,
+generated the node installer, configuration packages and cluster package list.
+These checks do not constitute a deployed DC/OS cluster test.
 
 GitHub Actions uses `ubuntu-24.04-arm`, checks the source-selection and archive
-fetcher tests, builds native core/service inputs, executes OpenSSL/Python smoke
+fetcher/local-source tests, builds native core/service inputs, executes OpenSSL/Python smoke
 tests, and uploads the resulting package archives. It does not validate a cluster.
