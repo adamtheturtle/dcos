@@ -8,7 +8,10 @@ volume=${DCOS_ARM64_VOLUME:-dcos-arm64-$checkout_key}
 docker volume create "$volume" >/dev/null
 native_root=$(docker volume inspect "$volume" --format '{{.Mountpoint}}')
 coordinator=dcos/arm64-coordinator:local
-mounts=(-v "$volume:$native_root" -v "$workspace_helper:/dcos-workspace.py:ro")
+inventory=$(mktemp)
+python3 "$workspace_helper" artifact-inventory "$repo_dir" > "$inventory"
+mounts=(-v "$volume:$native_root" -v "$workspace_helper:/dcos-workspace.py:ro"
+        -v "$inventory:/dcos-existing-artifacts.json:ro")
 docker run --rm "${mounts[@]}" --entrypoint python3 "$coordinator" -c \
     'import os,sys; os.mkdir(sys.argv[1] + "/.dcos-arm64-build-lock")' "$native_root"
 finish() {
@@ -16,10 +19,11 @@ finish() {
     trap - EXIT
     set +e
     if ! docker run --rm "${mounts[@]}" --entrypoint python3 "$coordinator" \
-        /dcos-workspace.py pack-artifacts "$native_root" | \
+        /dcos-workspace.py pack-artifacts "$native_root" /dcos-existing-artifacts.json | \
         python3 "$workspace_helper" unpack-artifacts "$repo_dir"; then status=1; fi
     if ! docker run --rm "${mounts[@]}" --entrypoint python3 "$coordinator" -c \
         'import os,sys; os.rmdir(sys.argv[1] + "/.dcos-arm64-build-lock")' "$native_root"; then status=1; fi
+    python3 -c 'import os,sys; os.unlink(sys.argv[1])' "$inventory"
     exit "$status"
 }
 trap finish EXIT

@@ -1,4 +1,5 @@
 """Transfer sources and completed artifacts between a checkout and a Linux volume."""
+import hashlib
 import json
 import os
 import shutil
@@ -89,21 +90,39 @@ def artifact_files(root):
     return sorted(paths)
 
 
-def pack_artifacts(root, stream):
+def fingerprint(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def artifact_inventory(root):
+    return {str(path.relative_to(root)): fingerprint(path) for path in artifact_files(root)}
+
+
+def pack_artifacts(root, stream, existing=None):
     with tarfile.open(fileobj=stream, mode='w|') as archive:
         for path in artifact_files(root):
+            name = str(path.relative_to(root))
+            if existing and name in existing and existing[name] == fingerprint(path):
+                continue
             archive.add(str(path), arcname=str(path.relative_to(root)), recursive=False)
 
 
 def main():
-    operation, folder = sys.argv[1:]
+    operation, folder, *options = sys.argv[1:]
     root = Path(folder)
     if operation == 'pack-sources':
         pack_sources(root, sys.stdout.buffer)
     elif operation == 'sync-sources':
         sync_sources(root, sys.stdin.buffer)
     elif operation == 'pack-artifacts':
-        pack_artifacts(root, sys.stdout.buffer)
+        existing = json.loads(Path(options[0]).read_text()) if options else None
+        pack_artifacts(root, sys.stdout.buffer, existing)
+    elif operation == 'artifact-inventory':
+        print(json.dumps(artifact_inventory(root)))
     elif operation == 'unpack-artifacts':
         extract(root, sys.stdin.buffer)
     else:

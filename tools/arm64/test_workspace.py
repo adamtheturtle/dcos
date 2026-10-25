@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from workspace import artifact_files, extract, pack_sources, sync_sources
+from workspace import artifact_files, artifact_inventory, extract, pack_artifacts, pack_sources, sync_sources
 
 
 class WorkspaceTest(unittest.TestCase):
@@ -58,6 +58,25 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(artifact_files(root), [archive])
             latest.write_text('example--complete')
             self.assertEqual(artifact_files(root), sorted([archive, latest]))
+
+    def test_delta_export_skips_identical_files_and_keeps_changed_pointer(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            package = root / 'packages/cache/packages/example'
+            package.mkdir(parents=True)
+            (package / 'example--one.tar.xz').write_bytes(b'first archive')
+            latest = package / 'latest'
+            latest.write_text('example--one')
+            existing = artifact_inventory(root)
+            (package / 'example--two.tar.xz').write_bytes(b'second archive')
+            latest.write_text('example--two')
+            stream = io.BytesIO()
+            pack_artifacts(root, stream, existing)
+            stream.seek(0)
+            with tarfile.open(fileobj=stream) as archive:
+                self.assertEqual(archive.getnames(), [
+                    'packages/cache/packages/example/example--two.tar.xz',
+                    'packages/cache/packages/example/latest'])
 
     def test_reject_parent_traversal(self):
         stream = io.BytesIO()
