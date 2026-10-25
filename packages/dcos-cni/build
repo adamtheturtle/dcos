@@ -1,10 +1,12 @@
 #!/bin/bash
-set -o nounset -o pipefail
+
+set -o errexit -o nounset -o pipefail
+go_arch=$(go env GOARCH)
 
 # install glide
-curl -L -O https://github.com/Masterminds/glide/releases/download/v0.13.0/glide-v0.13.0-linux-amd64.tar.gz && \
-  tar xzvf glide-v0.13.0-linux-amd64.tar.gz && \
-  mv linux-amd64/glide /usr/bin
+curl -fL -O https://github.com/Masterminds/glide/releases/download/v0.13.0/glide-v0.13.0-linux-${go_arch}.tar.gz && \
+  tar xzvf glide-v0.13.0-linux-${go_arch}.tar.gz && \
+  mv linux-${go_arch}/glide /usr/bin
 
 
 # Build and install DC/OS CNI plugins.

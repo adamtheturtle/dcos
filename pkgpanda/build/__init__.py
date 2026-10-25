@@ -1130,7 +1130,8 @@ def _build(package_store, name, variant, clean_after_build, recursive):
             cmd.run("package-cleaner",
                     ["cmd.exe", "/c", "if", "exist", filename, "rmdir", "/s", "/q", filename])
         else:
-            cmd.container = "ubuntu:14.04.4"
+            # Use a multiarch image so cleanup also runs natively on ARM64.
+            cmd.container = "ubuntu:16.04"
             cmd.run("package-cleaner", ["rm", "-rf", PKG_DIR + "/src", PKG_DIR + "/result"])
 
     clean()

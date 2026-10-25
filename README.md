@@ -1,5 +1,8 @@
 # DC/OS - The Datacenter Operating System
 
+For native Linux ARM64 package builds and current distribution blockers, see
+[ARM64 build work](docs/arm64-build.md).
+
 The easiest way to run microservices, big data, and containers in production.
 
 > ## DC/OS End of Life

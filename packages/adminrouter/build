@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Debian and Ubuntu install native libraries under the host multiarch triplet.
+multiarch=$(gcc -print-multiarch)
+
 set -e  # Fail the script if anything fails
 set -x  # Verbose output
 set -u  # Undefined variables
@@ -22,7 +25,7 @@ chmod a+x $ar_wrapper
 # TODO: We need more comprehensive approach to libraries. This is tracked in
 # https://jira.mesosphere.com/browse/DCOS-14039
 mkdir -p "$PKG_PATH/lib"
-cp /lib/x86_64-linux-gnu/libpcre.so.3 "$PKG_PATH/lib/libpcre.so.3"
+cp /lib/${multiarch}/libpcre.so.3 "$PKG_PATH/lib/libpcre.so.3"
 
 # Copy systemd unit files:
 tmp="$PKG_PATH/dcos.target.wants_master/dcos-adminrouter.service"

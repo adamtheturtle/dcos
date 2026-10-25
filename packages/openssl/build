@@ -3,12 +3,18 @@
 mkdir -p "/build"
 mkdir -p "$PKG_PATH/etc"
 
+case "$(uname -m)" in
+  x86_64) openssl_target=linux-x86_64 ;;
+  aarch64) openssl_target=linux-aarch64 ;;
+  *) echo "Unsupported OpenSSL architecture: $(uname -m)" >&2; exit 1 ;;
+esac
+
 # TODO(cmaloney): Fix the rpath
 pushd "/pkg/src/openssl"
 ./Configure "--prefix=$PKG_PATH" \
   --openssldir="$PKG_PATH/etc/ssl" \
   shared \
-  linux-x86_64 \
+  "$openssl_target" \
   no-rc4 \
   no-ssl3 \
   no-comp \
