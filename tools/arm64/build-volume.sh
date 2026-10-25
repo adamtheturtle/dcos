@@ -12,6 +12,7 @@ inventory=$(mktemp)
 python3 "$workspace_helper" artifact-inventory "$repo_dir" > "$inventory"
 mounts=(-v "$volume:$native_root" -v "$workspace_helper:/dcos-workspace.py:ro"
         -v "$inventory:/dcos-existing-artifacts.json:ro")
+trap 'python3 -c "import os,sys; os.unlink(sys.argv[1])" "$inventory"' EXIT
 docker run --rm "${mounts[@]}" --entrypoint python3 "$coordinator" -c \
     'import os,sys; os.mkdir(sys.argv[1] + "/.dcos-arm64-build-lock")' "$native_root"
 finish() {

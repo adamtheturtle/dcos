@@ -74,7 +74,7 @@ def artifact_files(root):
     cache = root / 'packages/cache'
     paths = set()
     for archive in (cache / 'packages').glob('*/*--*.tar.xz'):
-        if archive.name.endswith('-tmp.tar.xz'):
+        if archive.parent.name.startswith('_') or archive.name.endswith('-tmp.tar.xz'):
             continue
         paths.add(archive)
         for latest in archive.parent.glob('*latest'):

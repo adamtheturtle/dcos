@@ -4,12 +4,11 @@ set -ex
 
 cd /pkg/src/dcos-bootstrap-ca
 
-# Enable go module support in Go 1.11
-export GO111MODULE=on
-
-# Install linter (needed for dcos-bootstrap-ca build
-go get -u golang.org/x/lint/golint
-make
+# Keep the pinned module graph; installing the latest linter upgrades dependencies
+# beyond the release's Go compiler and is unrelated to producing the binary.
+export GO111MODULE=on GOMAXPROCS="$NUM_CORES" CGO_ENABLED=0
+go test -mod=readonly ./...
+go build -mod=readonly -o bin/dcos-bootstrap-ca-linux .
 
 mkdir -p $PKG_PATH/bin
 install -m 755 /pkg/src/dcos-bootstrap-ca/bin/dcos-bootstrap-ca-linux $PKG_PATH/bin/dcos-bootstrap-ca

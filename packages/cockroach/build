@@ -11,7 +11,6 @@ if [ -d "$cockroach_source/.git" ]; then
     cd "$cockroach_source"
     export GO111MODULE=off GOMAXPROCS="$NUM_CORES"
     make build -j"$NUM_CORES" BUILDTYPE=release EXTRA_XCMAKE_FLAGS=-DPORTABLE=ON \
-        CFLAGS="-I/opt/mesosphere/include/ncurses" \
         LDFLAGS="-L/opt/mesosphere/lib -lncurses -ltinfo"
 else
     cd "$cockroach_source"
